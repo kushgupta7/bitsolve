@@ -37,7 +37,7 @@ flowchart TB
     SMS["SmsChannel → SmsGatewayAdapter<br/>→ ThirdPartySmsApi"]
     REPO["Spring Data repositories<br/>+ JdbcTemplate"]
   end
-  DB[("PostgreSQL 16<br/>Flyway V1–V7")]
+  DB[("PostgreSQL 16<br/>Flyway V1–V8")]
   SMTP[["SMTP / MailHog"]]
   Browser -->|"JSON over HTTPS, cookie session"| SEC --> CTRL --> Services
   Services --> Domain

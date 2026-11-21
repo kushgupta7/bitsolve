@@ -14,7 +14,7 @@ Each member: name, role, the module they own (see TEAM.md). [NAME1] states the p
 
 ## 2:00 – 6:00 · Workflow 1 (note the three portals' different colours and home pages: teal student, indigo technician, navy/amber admin): report → auto-categorise + prioritise → assign → notify ([NAME1], [NAME3])
 1. On the login page click **Create an account** and register a new student (institutional e-mail, student ID, 12+ character password); show that a Gmail address is rejected. Sign in as the new student (or student01).
-2. **student01** → *Report Incident*: "Wi-Fi down in library reading room", description "Wireless keeps disconnecting on the 2nd floor, nobody can connect", service *Campus Wi-Fi*, impact HIGH, urgency HIGH. Submit.
+2. **student01** → *Report Incident*: "Wi-Fi down in library reading room", description "Wireless keeps disconnecting on the 2nd floor, nobody can connect", service *Campus Wi-Fi*, impact HIGH, urgency HIGH, **people affected 250**. Submit.
 3. Point out the incident status **New** and the student's in-app notification.
 4. **admin01** → *All Incidents* → open it. Show the **suggested category** (Network) with its explanation and the **related incidents** panel.
 5. *Classify*: show priority **P1** and captured deadlines. [NAME3] explains the multiplicative strategy, 3×3×3 = 27 ≥ 18 (PRIORITY_ALGORITHM.md), and that the strategy can be switched at runtime under *Assignment Strategies*.
@@ -25,7 +25,7 @@ Each member: name, role, the module they own (see TEAM.md). [NAME1] states the p
 1. **technician04** → *Acknowledge* (response SLA met) → *Start Investigation*.
 2. Show **Suggested resolutions**: three similar past Wi-Fi fixes (TF-IDF) and their steps.
 3. *Request Information*: "Which SSID and which device?" Status becomes **Awaiting Info**, and the detail view shows **Resolution SLA … (clock paused)**. [NAME4] explains the State pattern (`AwaitingInfoState.slaClockRunning() == false`) and that the deadline is extended by the paused time.
-4. **student01** sees "The technician needs more information" → reply. Status returns to **In Progress**.
+4. **student01** sees "The technician needs more information" → reply. (Outside AWAITING_INFO the student can also use **Add information** at any time; the technician is notified.) Status returns to **In Progress**.
 5. Wait for the 80 % mark: an **SLA warning** notification appears (P2/P1 demo policy).
 6. *Provide Resolution* (summary + steps) → **Resolved**; the student gets an in-app notification and an e-mail in MailHog.
 7. **student01** → *Verify* → *Feedback 5/5*. **admin01** → *Close Incident*. Show the incident history timeline (who did what, when) and the admin *Audit Logs* page.
@@ -39,9 +39,10 @@ Each member: name, role, the module they own (see TEAM.md). [NAME1] states the p
 5. Show **SLA risk prediction** on the Insights page (HIGH for the unacknowledged P1, with reasons).
 
 ## 16:00 – 18:30 · Insights, code and tests ([NAME1], [NAME2], [NAME4])
-1. Insights page: KPIs, trend, per-service, workload, category charts; **Export CSV**; **Export PDF (print)**.
-2. Code walk-through (IDE): `Incident.move()` → `IncidentState`; `AssignmentStrategies.assignWithFallback`; `EventBus` observers; `SmsGatewayAdapter`; `BitsolveException` hierarchy.
-3. Run tests: `./mvnw verify` (show the green summary) and open `docs/TEST_CASES.md`.
+1. *All Incidents* filter bar: combine **Technician**, **SLA status = At Risk** and a date range (9 criteria). *IT Services*: show the **SLA factor** (e.g. Student Portal ×0.5 for registration week).
+2. Insights page: KPIs, trend, per-service, workload, category charts; **Export CSV**; **Export PDF (print)**.
+3. Code walk-through (IDE): `Incident.move()` → `IncidentState`; `AssignmentStrategies.assignWithFallback`; `EventBus` observers; `SmsGatewayAdapter`; `BitsolveException` hierarchy.
+4. Run tests: `./mvnw verify` (show the green summary) and open `docs/TEST_CASES.md`.
 
 ## 18:30 – 20:00 · Wrap-up (all)
 Design patterns list (DESIGN_PATTERNS.md), what is not done (DECISIONS.md / SECURITY.md "not implemented"), how it would scale (TECH_STACK.md Q9). Thank the evaluators.

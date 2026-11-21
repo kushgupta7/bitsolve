@@ -64,6 +64,10 @@ public class Incident {
     private Instant resolutionDeadline;
     private Integer responseTargetMinutes;
     private Integer resolutionTargetMinutes;
+    // Reporter's estimate of how many people are affected (optional; > 100 raises priority one level).
+    private Integer affectedUsers;
+    // Per-service SLA factor captured with the targets (1.0 = standard policy).
+    private Double slaFactor;
     // SLA pause bookkeeping for AWAITING_INFO: when the pause began and the total paused time so far.
     private Instant slaPausedAt;
     @Column(nullable = false) private long slaPausedSeconds;
@@ -102,10 +106,15 @@ public class Incident {
         priority = calculated; move(IncidentStatus.CLASSIFIED);
     }
     // Snapshot targets once; policy edits and transfers never restart clocks.
-    public void captureSla(SlaPolicy policy) {
+    public void captureSla(SlaPolicy policy) { captureSla(policy, 1.0); }
+    /** Captures targets scaled by the affected service's SLA factor (e.g. 0.5 = twice as fast), at least 1 minute each. */
+    public void captureSla(SlaPolicy policy, double serviceFactor) {
         if (responseDeadline != null) return;
         if (priority != policy.getPriority()) throw new IllegalArgumentException("SLA priority mismatch.");
-        responseTargetMinutes = policy.getResponseMinutes(); resolutionTargetMinutes = policy.getResolutionMinutes();
+        if (!Double.isFinite(serviceFactor) || serviceFactor < 0.25 || serviceFactor > 4.0) throw new IllegalArgumentException("Service SLA factor must be between 0.25 and 4.");
+        slaFactor = serviceFactor;
+        responseTargetMinutes = (int) Math.max(1, Math.round(policy.getResponseMinutes() * serviceFactor));
+        resolutionTargetMinutes = (int) Math.max(1, Math.round(policy.getResolutionMinutes() * serviceFactor));
         responseDeadline = createdAt.plusSeconds(responseTargetMinutes * 60L);
         resolutionDeadline = createdAt.plusSeconds(resolutionTargetMinutes * 60L);
     }
@@ -247,6 +256,16 @@ public class Incident {
     public Instant getVerifiedAt() { return verifiedAt; }
     public Instant getClosedAt() { return closedAt; }
     public Instant getSlaPausedAt() { return slaPausedAt; }
+    public Integer getAffectedUsers() { return affectedUsers; }
+    public Double getSlaFactor() { return slaFactor; }
+    public Integer getResponseTargetMinutes() { return responseTargetMinutes; }
+    public Integer getResolutionTargetMinutes() { return resolutionTargetMinutes; }
+    /** Set by the reporter while the incident is still NEW. */
+    public void reportAffectedUsers(Integer count) {
+        require(IncidentStatus.NEW);
+        if (count != null && (count < 1 || count > 100_000)) throw new InvalidIncidentException("Affected users must be between 1 and 100000.");
+        affectedUsers = count;
+    }
     public long getSlaPausedSeconds() { return slaPausedSeconds; }
     public boolean isSlaPaused() { return !state().slaClockRunning() && status == IncidentStatus.AWAITING_INFO; }
     public String getResolutionSummary() { return resolutionSummary; }

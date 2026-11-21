@@ -37,19 +37,20 @@ All e-mails end in `@hyderabad.bits-pilani.ac.in`.
 | Brief requirement | Implementation |
 |---|---|
 | Register / login | ✅ Students self-register (institutional e-mail); staff accounts created by admins |
+| Employee adds information, responds to requests | ✅ Add information at any time while open; replies to technician questions resume the paused SLA |
 | Report, classify, prioritise, assign, investigate, resolve, verify, close | ✅ All three portals; lifecycle enforced by the **State pattern** (`incident/state`) incl. `AWAITING_INFO` with paused SLA, reopen, and 72 h auto-close |
 | ≥3 roles with different UI | ✅ Student (teal), Technician (indigo), Administrator (navy/amber) portals with their own home pages |
-| Priority determination | ✅ 4 runtime-switchable strategies ([PRIORITY_ALGORITHM.md](bits-itsm/docs/PRIORITY_ALGORITHM.md)) |
+| Priority determination | ✅ impact, urgency, service criticality and number of affected users; 4 runtime-switchable strategies ([PRIORITY_ALGORITHM.md](bits-itsm/docs/PRIORITY_ALGORITHM.md)) |
 | Technician assignment | ✅ Skill, Load, Round-robin, Priority-based, Smart recommendation + audited fallback; transfer/collaboration approvals |
-| SLA management | ✅ Policies per priority, captured deadlines, background monitor (warning at 80 %, breach), compliance % |
+| SLA management | ✅ Policies per priority with a per-service SLA factor, captured deadlines, background monitor (warning at 80 %, breach), compliance % |
 | Notifications | ✅ Observer: in-app (persisted), e-mail outbox with retry, simulated SMS via **Adapter** |
 | Audit trail | ✅ Immutable audit + per-incident history, admin filter |
-| Search, filtering, reporting | ✅ 9 combinable criteria, Insights & Analytics dashboards (Recharts), CSV + print-to-PDF export |
+| Search, filtering, reporting | ✅ 9 combinable criteria (API and UI), Insights & Analytics dashboards (Recharts), CSV + print-to-PDF export |
 | ≥2 intelligent features | ✅ 7: duplicate detection, major-incident correlation, P1 escalation (Chain of Responsibility), smart technician recommendation, SLA-risk prediction, auto-categorisation, suggested resolutions (TF-IDF) |
 | ≥2 design patterns | ✅ State, Strategy, Observer, Factory, Adapter, Chain of Responsibility, Repository ([DESIGN_PATTERNS.md](bits-itsm/docs/DESIGN_PATTERNS.md)) |
 | Exception handling | ✅ `BitsolveException` hierarchy covering all 12 situations in the brief, consistent JSON errors `{timestamp,status,code,message,path}` |
-| Persistence | ✅ PostgreSQL, Flyway V1–V7 |
-| ≥15 documented test cases | ✅ 51 documented, ≈222 automated ([TEST_CASES.md](bits-itsm/docs/TEST_CASES.md)) |
+| Persistence | ✅ PostgreSQL, Flyway V1–V8 |
+| ≥15 documented test cases | ✅ 55 documented, ≈232 automated ([TEST_CASES.md](bits-itsm/docs/TEST_CASES.md)) |
 | Innovation | ✅ Correlation, SLA-risk prediction, smart recommendation, TF-IDF suggestions, analytics dashboard, automated escalation, event-driven design, Docker + CI, cloud-ready |
 
 Gaps and deliberate deviations are listed in [PLAN.md](bits-itsm/docs/PLAN.md) and [DECISIONS.md](bits-itsm/docs/DECISIONS.md).
@@ -84,7 +85,7 @@ PostgreSQL tests need a disposable database (see *Builds and tests* below). GitH
 | Area | Endpoints |
 |---|---|
 | Auth | `GET /api/auth/csrf`, `POST /api/auth/register`, `GET /api/auth/registration`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
-| Incidents | `GET/POST /api/incidents` (filters: `search,status,category,priority,service,technician,from,to,sla`), `GET /api/incidents/my`, `GET /api/incidents/{id}`, `POST /api/incidents/{id}/{classify,acknowledge,start,notes,information,reply,resolve,verify,close,feedback,edit}`, `GET /api/incidents/lifecycle` |
+| Incidents | `GET/POST /api/incidents` (filters: `search,status,category,priority,service,technician,from,to,sla`), `GET /api/incidents/my`, `GET /api/incidents/{id}`, `POST /api/incidents/{id}/{classify,acknowledge,start,notes,information,reply,comment,resolve,verify,close,feedback,edit}`, `GET /api/incidents/lifecycle` |
 | Assignment | `POST /api/incidents/{id}/{assign,auto-assign}`, `GET /api/incidents/{id}/recommendations`, `GET/PUT /api/admin/assignment-strategy`, transfer/collaboration request endpoints |
 | Priority & SLA | `GET/PUT /api/admin/priority-strategy`, `POST …/preview`, `GET/PUT /api/admin/sla-policies/{priority}`, `GET /api/admin/sla/violations`, `GET /api/admin/escalations` |
 | Insights | `GET /api/admin/insights/{analytics,major-incidents,sla-risk}`, `GET /api/technician/sla-risk`, `GET /api/{technician,admin}/incidents/{id}/suggested-resolutions`, `GET /api/admin/reports/incidents.csv`, `GET /api/admin/sms-outbox` |
@@ -108,7 +109,7 @@ bits-itsm/
 │   ├── api/             Insights/analytics/CSV, admin and service endpoints
 │   ├── auth/ user/      Security, sessions, user inheritance, demo seeders
 │   └── support/         Read-only snapshots for background jobs
-├── backend/src/main/resources/db/migration   Flyway V1–V7
+├── backend/src/main/resources/db/migration   Flyway V1–V8
 ├── frontend/src         React portals, Insights (Recharts), API client
 ├── docs/                Report, UML, design documents, demo script
 ├── Dockerfile           React + Spring Boot in one image
@@ -117,7 +118,7 @@ bits-itsm/
 
 ## Verification status (21 Nov 2026)
 
-* 129 backend unit tests (72 existing + 57 new) pass; Flyway V1–V7 applied to PostgreSQL 16; demo seeder verified on PostgreSQL; frontend tests (5/5) and production build pass; Insights page checked in headless Chromium.
+* 139 backend unit tests (72 existing + 67 new) pass; Flyway V1–V8 applied to PostgreSQL 16; demo seeder verified on PostgreSQL; frontend tests (5/5) and production build pass; Insights page checked in headless Chromium.
 * **Before submitting**, run `./mvnw verify` (and the PostgreSQL suite) on a machine with Maven Central access: the final-stage changes could not be built with the real Spring/Hibernate libraries in the environment where they were written.
 
 ---

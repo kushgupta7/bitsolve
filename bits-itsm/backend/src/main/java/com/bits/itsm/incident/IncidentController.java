@@ -33,6 +33,7 @@ public class IncidentController {
     @PostMapping("/{id}/start") public View start(@PathVariable Long id, Authentication auth) { return service.start(id, auth.getName()); }
     @PostMapping("/{id}/notes") public View note(@PathVariable Long id, @Valid @RequestBody Note request, Authentication auth) { return service.note(id, request, auth.getName()); }
     @PostMapping("/{id}/information") public View information(@PathVariable Long id, @Valid @RequestBody Message request, Authentication auth) { return service.information(id, request, auth.getName(), false); }
+    @PostMapping("/{id}/comment") public View addInformation(@PathVariable Long id, @Valid @RequestBody Message request, Authentication auth) { return service.addInformation(id, request, auth.getName()); }
     @PostMapping("/{id}/reply") public View reply(@PathVariable Long id, @Valid @RequestBody Message request, Authentication auth) { return service.information(id, request, auth.getName(), true); }
     @PostMapping("/{id}/resolve") public View resolve(@PathVariable Long id, @Valid @RequestBody Resolution request, Authentication auth) { return service.resolve(id, request, auth.getName()); }
     @PostMapping("/{id}/verify") public View verify(@PathVariable Long id, @Valid @RequestBody Verification request, Authentication auth) { return service.verify(id, request, auth.getName()); }

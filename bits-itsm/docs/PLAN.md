@@ -19,11 +19,12 @@ The team's code (session auth, three portals, four priority strategies, two assi
 | Dockerfile, docker-compose (Postgres + app + MailHog), GitHub Actions | ✅ (single app image serves UI, D4) | `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml` |
 | Layered architecture, controllers without logic, DTOs | ✅ | ARCHITECTURE.md |
 | ≥3 roles with different UI | ✅ Student / Technician / Admin, distinct colour, badge, icons and home page each (D21) | `pages/*`, `HomePanels.jsx` |
+| Employee adds additional information anytime | ✅ (D23) | `IncidentService.addInformation`, `StudentIncidentActions.jsx` |
 | Register / login | ✅ students self-register; staff created by admin (D5) | `RegistrationController`, `Register.jsx` |
 | TEAM_LEAD role | 🟡 performed by admins; level exists in escalation (D6) | – |
 | User inheritance, factory for subtype | ✅ `UserFactory` | `user/` |
 | Incident fields incl. INC id, SLA, notes, resolution, feedback, history | ✅ (`INC-1001` label) | `Incident`, `IncidentLabel` |
-| Impact/urgency 1–4, affected users count | 🟡 three levels, no user count (D7) | PRIORITY_ALGORITHM.md |
+| Impact/urgency 1–4, affected users count | ✅ three levels; affected users > 100 raises priority one level (D7) | `AffectedUsersRule`, PRIORITY_ALGORITHM.md |
 | Admin-configurable categories/services with criticality | ✅ (rename/enable/criticality; new codes need code, D8) | `CatalogService` |
 | **State pattern**, one class per state, InvalidStateTransitionException, events on every transition | ✅ | `incident/state/*` |
 | AWAITING_INFO with paused SLA | ✅ | `AwaitingInfoState`, `Incident#requestInformation` |
@@ -35,11 +36,11 @@ The team's code (session auth, three portals, four priority strategies, two assi
 | Smart recommendation top 3 with explanations | ✅ | `SmartRecommendation`, `IncidentAssist.jsx` |
 | Fallback to next strategy, audited | ✅ | `AssignmentStrategies.assignWithFallback`, history `ASSIGNMENT_FALLBACK` |
 | SLA policies per priority, MissingSlaConfigurationException, response/resolution tracking | ✅ | `SlaPolicies`, `Incident#captureSla` |
-| SLA policy per service | ❌ per priority only | – |
+| SLA policy per service | ✅ per-service SLA factor (D22) | `CatalogEntry.slaFactor`, `SlaPolicies.capture` |
 | Background SLA monitor, warning, violations, ON_TRACK/AT_RISK/BREACHED/MET | ✅ (80 % warning, check every 5 s) | `sla/SlaMonitor` |
 | Observer notifications; channels in-app / email / SMS (Adapter); channel factory | ✅ | `event/`, `notification/` |
 | Audit trail, per-incident timeline, admin filter | ✅ | `audit/`, `AdminManagement.jsx` |
-| Search by ≥8 combinable criteria | ✅ 9 criteria in API (D12) | `IncidentService.SearchCriteria` |
+| Search by ≥8 combinable criteria | ✅ 9 criteria in API and UI: ID/keyword, status, priority, category, service, technician, SLA status, date from/to (D12) | `IncidentService.SearchCriteria`, `MyIncidents.jsx` |
 | Dashboards: overview, workload, service, trend, SLA %, MTTA/MTTR, categories, feedback | ✅ | `InsightsService.analytics`, `Insights.jsx` |
 | Export CSV and PDF | ✅ CSV endpoint; PDF via print stylesheet | `/api/admin/reports/incidents.csv` |
 | A Duplicate detection (TF-IDF) | ✅ Jaccard + synonyms for duplicates, TF-IDF for suggestions (D13) | `intelligence/` |
@@ -62,7 +63,7 @@ The team's code (session auth, three portals, four priority strategies, two assi
 | Chatbot-style reporting | ❌ | – |
 
 ## Verification performed in the final stage
-* 129 plain unit tests (72 existing + 57 new) compiled and run against framework stand-ins: **all pass**.
-* All seven Flyway migrations applied to PostgreSQL 16; constraints inspected; demo seeder executed against it.
+* 139 plain unit tests (72 existing + 67 new) compiled and run against framework stand-ins: **all pass**.
+* All eight Flyway migrations applied to PostgreSQL 16; constraints inspected; demo seeder executed against it.
 * Frontend: `npm test` (5/5) and `npm run build` pass; Insights page, all three signed-in portals (desktop and 390 px), login and registration rendered in headless Chromium with no console errors and no horizontal scroll at 390 px.
 * **Not run here:** the full Maven build (Spring context, MockMvc, Hibernate validation, PostgreSQL integration tests), because Maven Central was unreachable. Run `./mvnw verify` (and with `BITSOLVE_DB_TESTS=true`) before submission.

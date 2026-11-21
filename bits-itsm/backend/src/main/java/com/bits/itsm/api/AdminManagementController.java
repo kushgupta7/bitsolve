@@ -32,7 +32,10 @@ public class AdminManagementController {
     public record NewUser(@NotBlank @Size(max=100) String name, @NotBlank String email, @NotNull Role role,
             @NotBlank @Size(min=8,max=72) String password, @Size(max=30) String studentNumber, TechnicianSkill skill) { }
     public record UserEdit(@NotBlank @Size(max=100) String name, boolean enabled) { }
-    public record CatalogEdit(@NotBlank @Size(max=100) String label, boolean enabled, Incident.Level criticality) { }
+    public record CatalogEdit(@NotBlank @Size(max=100) String label, boolean enabled, Incident.Level criticality,
+            @jakarta.validation.constraints.DecimalMin("0.25") @jakarta.validation.constraints.DecimalMax("4.0") Double slaFactor) {
+        public CatalogEdit(String label, boolean enabled, Incident.Level criticality) { this(label, enabled, criticality, null); }
+    }
     private UserView view(User user) { return new UserView(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.isEnabled(), user instanceof Student student ? student.getStudentNumber() : null); }
     private void audit(Authentication auth, String action, String before, String after, String description) {
         Long actor = users.findByEmail(auth.getName()).filter(User::isEnabled).orElseThrow().getId();
@@ -60,9 +63,10 @@ public class AdminManagementController {
     @GetMapping("/catalog") public List<CatalogEntry> catalog() { return catalog.all(); }
     @PutMapping("/catalog/{kind}/{code}") @Transactional public CatalogEntry updateCatalog(@PathVariable String kind, @PathVariable String code, @Valid @RequestBody CatalogEdit request, Authentication auth) {
         CatalogEntry entry = catalog.get(kind, code);
-        String before = entry.getLabel() + ":" + entry.isEnabled() + ":" + entry.getCriticality();
+        String before = entry.getLabel() + ":" + entry.isEnabled() + ":" + entry.getCriticality() + ":x" + entry.getSlaFactor();
         entry = catalog.update(kind, code, request.label(), request.enabled(), request.criticality());
-        audit(auth, "CATALOG_UPDATED", before, entry.getLabel() + ":" + entry.isEnabled() + ":" + entry.getCriticality(), entry.getId()); return entry;
+        if (request.slaFactor() != null) entry.configureSla(request.slaFactor());
+        audit(auth, "CATALOG_UPDATED", before, entry.getLabel() + ":" + entry.isEnabled() + ":" + entry.getCriticality() + ":x" + entry.getSlaFactor(), entry.getId()); return entry;
     }
     @GetMapping("/reports") public Map<String, Object> reports() {
         List<Incident> records = incidents.findAll();

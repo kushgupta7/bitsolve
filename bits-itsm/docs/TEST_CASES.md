@@ -1,9 +1,9 @@
 # Test cases
 
-**Automated suite:** the team's suite (165 backend tests, last full run 16 Nov 2026 on PostgreSQL) plus **57 new unit tests** added in the final stage (state machine, strategies, intelligence, SMS adapter, exports), giving about 222 automated tests. Run `./mvnw verify` for unit + MockMvc tests and `BITSOLVE_DB_TESTS=true ./mvnw verify` to add the PostgreSQL integration tests. Frontend: `npm test` (API client).
+**Automated suite:** the team's suite (165 backend tests, last full run 16 Nov 2026 on PostgreSQL) plus **67 new unit tests** added in the final stage (state machine, strategies, intelligence, SMS adapter, exports), giving about 232 automated tests. Run `./mvnw verify` for unit + MockMvc tests and `BITSOLVE_DB_TESTS=true ./mvnw verify` to add the PostgreSQL integration tests. Frontend: `npm test` (API client).
 
 "Actual" column:
-* **Pass**: re-run after the final changes (129 plain unit tests: 72 existing + 57 new).
+* **Pass**: re-run after the final changes (139 plain unit tests: 72 existing + 67 new).
 * **Re-run before submission**: Spring context / MockMvc / PostgreSQL tests that passed in the team's 16 Nov run but need a fresh `./mvnw verify` on a machine with Maven access.
 
 | ID | Description | Category | Preconditions | Input | Expected result | Actual | Automated test |
@@ -59,6 +59,10 @@
 | TC49 | Student registration validation | Invalid input / security | – | gmail address, 11-char password, bad ID, password containing e-mail name | each rejected with `ValidationException`; valid input accepted | Pass | `RegistrationRulesTest.rejectsNonInstitutionalEmailShortPasswordBadIdAndPasswordContainingEmailName`, `…acceptsAValidStudentRegistration` |
 | TC50 | Registration password boundary | Boundary | – | 11, 12, 73 characters | reject, accept, reject | Pass | `RegistrationRulesTest.passwordBoundaryIsTwelveCharactersAndSeventyTwoBytes` |
 | TC51 | UserFactory builds the right subtype | Normal | – | each role | Student / Technician / Administrator; missing student ID rejected | Pass | `RegistrationRulesTest.factoryCreatesTheSubtypeForEachRole` |
+| TC52 | More than 100 affected people raises priority one level | Business rule / boundary | – | (P3,150), (P2,101), (P1,5000), (P4,100), (P3,1) | P2, P1, P1, P4, P3 | Pass | `AffectedUsersAndServiceSlaTest.moreThanOneHundredAffectedUsersRaisesPriorityOneLevel` |
+| TC53 | Affected-user count validated and fixed after classification | Invalid input | NEW incident | 0, 100001, then change after classify | `InvalidIncidentException`; `InvalidStateTransitionException` | Pass | `AffectedUsersAndServiceSlaTest.reporterCanStateAffectedUsersOnlyWhileNewAndWithinBounds` |
+| TC54 | Service SLA factor scales both targets | Normal | P2 policy 15/120 | factor 0.5 | 8 min / 60 min, deadline = created + 60 min | Pass | `AffectedUsersAndServiceSlaTest.serviceFactorScalesBothSlaTargets` |
+| TC55 | Factor bounds and 1-minute floor | Boundary | – | 0.1, 5.0; P1 1/2 min × 0.25 | rejected; response stays 1 min | Pass | `…serviceFactorOutsideRangeIsRejected`, `…defaultFactorKeepsPolicyTargetsAndTinyTargetsStayAtLeastOneMinute` |
 
 Postgres* tests run only with `BITSOLVE_DB_TESTS=true` against a disposable PostgreSQL database.
 

@@ -34,11 +34,11 @@ export async function apiRequest(path, options = {}) {
   return data;
 }
 
-export async function apiSend(path, body, method = 'POST') {
+export async function apiSend(path, body, method = 'POST', extraHeaders = {}) {
   const csrf = await apiRequest('auth/csrf');
   return apiRequest(path, {
     method,
-    headers: { 'Content-Type': 'application/json', [csrf.headerName]: csrf.token },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders, [csrf.headerName]: csrf.token },
     body: body ? JSON.stringify(body) : undefined,
   });
 }

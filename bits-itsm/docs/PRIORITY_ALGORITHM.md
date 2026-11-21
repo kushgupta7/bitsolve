@@ -62,7 +62,20 @@ An ordered list of predefined conditions; the first match wins, otherwise the fa
 
 Admins can reorder or remove rules (`HIGH_IMPACT`, `HIGH_URGENCY` are also available) and choose each result.
 
-## SLA targets per priority (defaults, editable under *SLA Policies*)
+## Number of affected users (applies to every strategy)
+
+The student can optionally answer "How many people are affected?" (1–100 000) when reporting. After the active strategy has produced a priority, `AffectedUsersRule` applies one adjustment:
+
+| Affected users | Adjustment |
+|---|---|
+| not stated, or 1–100 | none |
+| more than 100 | priority raised one level (P4→P3, P3→P2, P2→P1; P1 stays P1) |
+
+**Rationale.** Impact describes *how badly* each person is affected; the user count describes *how many*. A medium-impact problem that hits a whole hostel block deserves faster handling than the same problem for one student. Raising by one level (rather than multiplying the score) works identically for all four strategies, including the matrix and rule-based ones that have no numeric score. The raise is recorded in the incident history ("Priority raised from P3 to P2: 250 people affected").
+
+**Worked example.** "Student portal slow during registration": impact MEDIUM, urgency MEDIUM, Student Portal criticality MEDIUM → multiplicative 2·2·2 = 8 → **P3**. The student enters 400 affected people → **P2** (15 min response, 2 h resolution).
+
+## SLA targets per priority (defaults, editable under *SLA Policies*) and per service
 
 | Priority | Response | Resolution |
 |---|---|---|
@@ -71,10 +84,12 @@ Admins can reorder or remove rules (`HIGH_IMPACT`, `HIGH_URGENCY` are also avail
 | P3 | 1 h | 8 h |
 | P4 | 4 h | 24 h |
 
+**Different services, different SLAs.** Each IT service has an *SLA factor* (default ×1, range ×0.25–×4, set under *IT Services*). At classification the priority targets are multiplied by the service's factor and rounded (minimum 1 minute), and the factor is stored on the incident. Example: during registration week the admin sets Student Portal to ×0.5, so a P2 portal incident gets 8 min response (7.5 rounded) and 1 h resolution instead of 15 min / 2 h. Incidents already classified keep their captured targets.
+
 If no policy exists for a priority, classification fails with `MissingSlaConfigurationException` (HTTP 409) and the incident stays NEW.
 
 ## Differences from the original prompt (see DECISIONS.md)
 
 * Impact/urgency use three levels (LOW/MEDIUM/HIGH) instead of 1–4. Students found a 4-point scale hard to apply consistently, and three levels keep the matrix readable.
-* There is no "affected users" multiplier, because the incident form does not collect a user count. The rule-based and matrix strategies cover "many people affected" through HIGH impact.
+* The affected-users factor is a one-level raise above 100 people rather than the prompt's ×1.0/×1.2/×1.5 score multiplier, so that it works for all four strategies (two of which have no numeric score).
 * "Security category + high impact ⇒ P1" and "Payment service down ⇒ P1" are expressed with the configurable rules (`HIGH_IMPACT_AND_URGENCY`, `CRITICAL_SERVICE`) together with service criticality, rather than hard-coded category names.

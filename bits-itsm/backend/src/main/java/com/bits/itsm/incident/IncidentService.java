@@ -132,18 +132,29 @@ public class IncidentService {
      */
     @Transactional
     public View create(Create request, String email, String idempotencyKey) {
-        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+        String key = idempotencyKey == null || idempotencyKey.isBlank() ? null : email + ":" + idempotencyKey;
+        if (key != null) {
             java.time.Instant now = java.time.Instant.now();
             submissions.entrySet().removeIf(e -> e.getValue().isBefore(now.minus(SUBMISSION_MEMORY)));
-            if (submissions.putIfAbsent(email + ":" + idempotencyKey, now) != null) {
+            // putIfAbsent is atomic, so two simultaneous clicks cannot both pass.
+            if (submissions.putIfAbsent(key, now) != null) {
                 throw new com.bits.itsm.exception.DuplicateIncidentException("This report was already submitted. Check My Incidents.");
             }
         }
+        try {
+            return createOnce(request, email);
+        } catch (RuntimeException failed) {
+            if (key != null) submissions.remove(key);  // a rejected report may be corrected and sent again with the same key
+            throw failed;
+        }
+    }
+    private View createOnce(Create request, String email) {
         User user = actor(email); role(user, Role.STUDENT);
         catalog.requireEnabled("CATEGORY", request.category().name());
         catalog.requireEnabled("SERVICE", request.affectedService().name());
         priorities.criticality(request.affectedService());
         Incident incident = new Incident(request.title(), request.description(), (Student) user, request.category(), request.affectedService(), request.impact(), request.urgency());
+        incident.reportAffectedUsers(request.affectedUsers());
         incident.record(user, "CREATED", "Incident reported.", STUDENT_VISIBLE);
         incidents.saveAndFlush(incident);
         events.publish(incident.getId(), user.getId(), "CREATED", null, "NEW", "Incident reported.");
@@ -154,9 +165,17 @@ public class IncidentService {
     public View classify(Long id, Classification request, String email) {
         User user = actor(email); Incident incident = editable(id, user, Role.ADMIN);
         Incident.Level criticality = priorities.criticality(incident.getAffectedService());
-        incident.classify(request.category(), priorities.calculate(incident, criticality));
+        Incident.Priority calculated = priorities.calculate(incident, criticality);
+        Incident.Priority adjusted = com.bits.itsm.priority.AffectedUsersRule.apply(calculated, incident.getAffectedUsers());
+        incident.classify(request.category(), adjusted);
         incident.captureCriticality(criticality);
         slaPolicies.capture(incident);
+        if (adjusted != calculated) {
+            incident.record(user, "PRIORITY_RAISED", "Priority raised from " + calculated + " to " + adjusted + ": " + incident.getAffectedUsers() + " people affected (more than " + com.bits.itsm.priority.AffectedUsersRule.THRESHOLD + ").", STUDENT_VISIBLE);
+        }
+        if (incident.getSlaFactor() != null && incident.getSlaFactor() != 1.0) {
+            incident.record(user, "SLA_ADJUSTED", "Service SLA factor ×" + incident.getSlaFactor() + " for " + incident.getAffectedService().getLabel() + ": response " + incident.getResponseTargetMinutes() + " min, resolution " + incident.getResolutionTargetMinutes() + " min.", STUDENT_VISIBLE);
+        }
         events.publish(id, user.getId(), "PRIORITY_CHANGED", "PENDING", incident.getPriority().name(), "Calculated using " + priorities.current().getStrategy() + "; criticality: " + criticality);
         incident.record(user, "PRIORITY_ASSIGNED", "Priority: " + incident.getPriority() + "; criticality: " + criticality, STUDENT_VISIBLE);
         return finish(incident, user, "CLASSIFIED", "Category confirmed: " + request.category());
@@ -199,6 +218,20 @@ public class IncidentService {
         }
         incident.addNote(user, request.content(), STUDENT_VISIBLE, reply ? STUDENT_REPLY : INFORMATION_REQUEST);
         return finish(incident, user, reply ? "STUDENT_REPLIED" : "INFORMATION_REQUESTED", reply ? "Student replied to support." : "Technician requested additional information.");
+    }
+    /**
+     * Brief: the employee can "add additional information" at any time while the incident is open.
+     * If the technician is waiting for an answer (AWAITING_INFO) the information counts as the reply and resumes the SLA clock.
+     */
+    @Transactional
+    public View addInformation(Long id, Message request, String email) {
+        User user = actor(email);
+        Incident peek = incidents.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Incident not found."));
+        if (peek.getStatus() == IncidentStatus.AWAITING_INFO) return information(id, request, email, true);
+        Incident incident = editable(id, user, Role.STUDENT);
+        incident.requireAny(IncidentStatus.NEW, IncidentStatus.CLASSIFIED, IncidentStatus.ASSIGNED, IncidentStatus.ACKNOWLEDGED, IncidentStatus.IN_PROGRESS);
+        incident.addNote(user, request.content(), STUDENT_VISIBLE, STUDENT_REPLY);
+        return finish(incident, user, "INFORMATION_ADDED", "Reporter added information.");
     }
     @Transactional
     public View resolve(Long id, Resolution request, String email) {
@@ -298,6 +331,6 @@ public class IncidentService {
                 i.getCreatedAt(), i.getUpdatedAt(), i.getAcknowledgedAt(), i.getResolvedAt(), i.getVerifiedAt(), i.getClosedAt(),
                 i.getResolutionSummary(), i.getResolutionSteps(), notes, history, f == null ? null : new FeedbackView(f.getRating(), f.getComment(), f.getCreatedAt()),
                 user.getRole() == Role.TECHNICIAN && i.isPrimary(user.getId()), student ? List.of() : i.getCollaborators().stream()
-                    .map(c -> new TeamMember(person(c.getTechnician()), c.getResponsibility())).toList(), categories.suggest(i.getTitle(), i.getDescription()), i.getCriticality(), i.getResponseDeadline(), i.getResolutionDeadline(), i.responseSla(java.time.Instant.now()), i.resolutionSla(java.time.Instant.now()), i.isSlaPaused(), i.getSlaPausedSeconds());
+                    .map(c -> new TeamMember(person(c.getTechnician()), c.getResponsibility())).toList(), categories.suggest(i.getTitle(), i.getDescription()), i.getCriticality(), i.getResponseDeadline(), i.getResolutionDeadline(), i.responseSla(java.time.Instant.now()), i.resolutionSla(java.time.Instant.now()), i.isSlaPaused(), i.getSlaPausedSeconds(), i.getAffectedUsers(), i.getSlaFactor());
     }
 }

@@ -1,6 +1,6 @@
 # Database design
 
-PostgreSQL 16. The schema is owned by **Flyway** (`backend/src/main/resources/db/migration/V1…V7`); Hibernate only validates it (`ddl-auto=validate`).
+PostgreSQL 16. The schema is owned by **Flyway** (`backend/src/main/resources/db/migration/V1…V8`); Hibernate only validates it (`ddl-auto=validate`).
 
 ![ER diagram](diagrams/er.png)
 
@@ -53,6 +53,8 @@ erDiagram
     timestamptz resolution_deadline
     timestamptz sla_paused_at
     bigint sla_paused_seconds
+    int affected_users
+    double sla_factor "captured"
     varchar resolution_summary
   }
   SLA_POLICIES {
@@ -67,6 +69,7 @@ erDiagram
     varchar label
     boolean enabled
     varchar criticality
+    double sla_factor "default 1.0"
   }
   AUDIT_EVENTS {
     varchar id PK
@@ -90,8 +93,8 @@ erDiagram
 |---|---|
 | `app_users` | Single-table inheritance for Student / Technician / Administrator (`role` discriminator) |
 | `technician_skills` | Element collection of skills per technician (unique pair) |
-| `catalog_entries` | Admin-editable services and categories (label, enabled, criticality) |
-| `incidents` | Aggregate root: lifecycle, priority, captured SLA, pause bookkeeping, resolution |
+| `catalog_entries` | Admin-editable services and categories (label, enabled, criticality, SLA factor ×0.25–×4) |
+| `incidents` | Aggregate root: lifecycle, priority, affected users, captured SLA (+ service factor), pause bookkeeping, resolution |
 | `investigation_notes` | Notes, information requests and student replies (visibility INTERNAL / STUDENT_VISIBLE) |
 | `incident_history` | Per-incident timeline shown in the UI |
 | `incident_feedback` | One 1–5 rating per incident (`check rating between 1 and 5`) |

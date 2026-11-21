@@ -6,7 +6,7 @@
 | Framework | Spring Boot | 4.1.2 | Web MVC, Data JPA, Security, Validation, Mail, Scheduling |
 | ORM | Hibernate (via Spring Data JPA) | 7.x | Entities, repositories, pessimistic locks |
 | Database | PostgreSQL | 16+ (tested 16 and 18) | Persistent store, JSONB for strategy settings |
-| Migrations | Flyway | 11.x | Versioned schema V1–V7 |
+| Migrations | Flyway | 11.x | Versioned schema V1–V8 |
 | Security | Spring Security, BCrypt | 7.x | Sessions, CSRF, role URLs |
 | Mail | Spring Mail / Jakarta Mail | – | Reporter e-mail outbox (Gmail SMTP or MailHog) |
 | SMS | Simulated vendor via Adapter | – | Urgent alerts (no external cost) |

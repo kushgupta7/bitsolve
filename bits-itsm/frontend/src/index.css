@@ -369,3 +369,5 @@ button:focus-visible { outline: 3px solid #389ab8; outline-offset: 3px; }
 }
 .role-welcome { margin-top: 18px; }
 .risk-list .admin-badge { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.optional-label { font-weight: 400; color: #68788a; }
+.add-info-heading { margin: 18px 0 4px; font-size: 15px; }
