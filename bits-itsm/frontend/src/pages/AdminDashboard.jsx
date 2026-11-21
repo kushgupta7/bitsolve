@@ -1,5 +1,7 @@
 import AdminManagement from '../AdminManagement.jsx';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+// Charts are loaded only when the Insights page is opened.
+const Insights = lazy(() => import('../Insights.jsx'));
 import Button27 from '../components/ui/button-27.jsx';
 import Notifications from '../Notifications.jsx';
 import LiveIncidents from '../LiveIncidents.jsx';
@@ -7,7 +9,7 @@ import AssignmentManagement from '../AssignmentManagement.jsx';
 import { incidentStatuses, readableLabel } from '../MyIncidents.jsx';
 import { demoIncidents, users, technicians, technicianSkills, transferRequests, collaborationRequests, services, incidentCategories, slaPolicies, auditLogs, investigationNotes, adminNotifications, relatedIncidentExamples, recommendationExamples, isActive, technicianWorkload } from '../demoData.js';
 
-const pages = ['Dashboard', 'All Incidents', 'Assignment Requests', 'Collaboration Requests', 'Manage Technicians', 'Manage Users', 'IT Services', 'Incident Categories', 'SLA Policies', 'Assignment Strategies', 'Escalations', 'Reports & Analytics', 'Audit Logs', 'Notifications', 'Settings'];
+const pages = ['Dashboard', 'Insights & Analytics', 'All Incidents', 'Assignment Requests', 'Collaboration Requests', 'Manage Technicians', 'Manage Users', 'IT Services', 'Incident Categories', 'SLA Policies', 'Assignment Strategies', 'Escalations', 'Reports & Analytics', 'Audit Logs', 'Notifications', 'Settings'];
 const person = (id) => users.find((user) => user.id === id)?.name || 'Unassigned';
 const incidentById = (id) => demoIncidents.find((incident) => incident.id === id);
 const technicianById = (id) => technicians.find((technician) => technician.id === id);
@@ -562,6 +564,7 @@ export default function AdminDashboard({ sessionUser, sessionNotice }) {
   if (sessionUser && managementPages.includes(page)) content = <AdminManagement key={page} page={page} />;
   if (sessionUser && page === 'Settings') content = <section className="report-form"><h2>System configuration</h2><p>Manage persisted priority and assignment strategies and SLA targets using their respective pages.</p><button className="incident-view" onClick={() => navigate('Assignment Strategies')}>Open Strategies</button></section>;
   if (sessionUser && page === 'Notifications') content = <Notifications live role="ADMIN" />;
+  if (page === 'Insights & Analytics') content = sessionUser ? <Suspense fallback={<p role="status">Loading charts…</p>}><Insights /></Suspense> : <section className="report-form"><h2>Sign in required</h2><p>Insights are computed by the Java backend from live data.</p></section>;
   if (sessionUser && ['Dashboard', 'All Incidents'].includes(page)) content = <LiveIncidents role="ADMIN" />;
   const assignmentPages = { 'Assignment Requests': 'transfer', 'Collaboration Requests': 'collaboration', 'Manage Technicians': 'workload', 'Assignment Strategies': 'strategy' };
   if (sessionUser && assignmentPages[page]) content = <AssignmentManagement key={page} mode={assignmentPages[page]} role="ADMIN" userId={sessionUser.id} />;

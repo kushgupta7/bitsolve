@@ -131,4 +131,11 @@ class IncidentStateMachineTest {
         assertTrue(e instanceof RuntimeException);
         assertTrue(e.getMessage().contains("NEW") && e.getMessage().contains("CLOSED"));
     }
+
+    @Test void overallSlaStatusIsTheWorseOfBothClocks() {
+        assertEquals(SlaClock.Status.BREACHED, IncidentServiceAccess.worst(SlaClock.Status.MET, SlaClock.Status.BREACHED));
+        assertEquals(SlaClock.Status.AT_RISK, IncidentServiceAccess.worst(SlaClock.Status.AT_RISK, SlaClock.Status.ON_TRACK));
+        assertEquals(SlaClock.Status.MET, IncidentServiceAccess.worst(SlaClock.Status.MET, SlaClock.Status.MET));
+        assertNull(IncidentServiceAccess.worst(null, null));
+    }
 }

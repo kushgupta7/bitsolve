@@ -69,7 +69,7 @@ function SlaAttention({ incidents, onView, onAction }) {
 function DashboardHome({ incidents, technician, workload, onView, onAction, onNavigate }) {
   const active = incidents.filter(isActive);
   const pending = active.filter((incident) => incident.status === 'ASSIGNED');
-  const inProgress = active.filter((incident) => ['ACKNOWLEDGED', 'IN_PROGRESS'].includes(incident.status));
+  const inProgress = active.filter((incident) => ['ACKNOWLEDGED', 'IN_PROGRESS', 'AWAITING_INFO'].includes(incident.status));
   const highPriority = active.filter((incident) => ['P1', 'P2'].includes(incident.priority));
   const atRisk = active.filter((incident) => incident.slaStatus === 'AT_RISK');
   const summary = [
@@ -283,7 +283,7 @@ function MyWorkload({ technician, workload, onView, onAction }) {
   const transferIncident = primary.find((incident) => incident.id === transferId);
   const summary = [
     ['Total Active Incidents', workload.active.length], ['Pending Acknowledgment', primary.filter((incident) => incident.status === 'ASSIGNED').length],
-    ['In Progress', workload.active.filter((incident) => ['ACKNOWLEDGED', 'IN_PROGRESS'].includes(incident.status)).length],
+    ['In Progress', workload.active.filter((incident) => ['ACKNOWLEDGED', 'IN_PROGRESS', 'AWAITING_INFO'].includes(incident.status)).length],
     ['High-Priority Incidents', workload.active.filter((incident) => ['P1', 'P2'].includes(incident.priority)).length],
     ['Collaborating Incidents', collaborating.length], ['Resolved Incidents', workload.participating.filter((incident) => !isActive(incident)).length],
   ];

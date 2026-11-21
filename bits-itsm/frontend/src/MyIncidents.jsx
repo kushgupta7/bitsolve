@@ -11,6 +11,7 @@ export const incidentStatuses = {
   ASSIGNED: { label: 'Assigned', group: 'in-progress' },
   ACKNOWLEDGED: { label: 'Acknowledged', group: 'in-progress' },
   IN_PROGRESS: { label: 'In Progress', group: 'in-progress' },
+  AWAITING_INFO: { label: 'Awaiting Info', group: 'in-progress' },
   RESOLVED: { label: 'Resolved', group: 'resolved' },
   VERIFIED: { label: 'Verified', group: 'resolved' },
   CLOSED: { label: 'Closed', group: 'resolved' },
@@ -164,7 +165,7 @@ export default function MyIncidents({ incidents, initialIncidentId, liveRole, te
           <dl className="incident-details">{[
             ['Incident ID', selectedIncident.id], ['Title', selectedIncident.title], ['Description', selectedIncident.description],
             ['Reporter', selectedIncident.reporter.name], ['Category', readableLabel(selectedIncident.category)], ['Affected Service', selectedIncident.serviceLabel],
-            ['Business criticality', readableLabel(selectedIncident.criticality)], ['Response SLA', readableLabel(selectedIncident.responseSla)], ['Resolution SLA', readableLabel(selectedIncident.resolutionSla)], ['Response deadline', selectedIncident.responseDeadline || 'Pending classification'], ['Resolution deadline', selectedIncident.resolutionDeadline || 'Pending classification'],
+            ['Business criticality', readableLabel(selectedIncident.criticality)], ['Response SLA', readableLabel(selectedIncident.responseSla)], ['Resolution SLA', `${readableLabel(selectedIncident.resolutionSla)}${selectedIncident.slaPaused ? ' (clock paused)' : ''}`], ['Response deadline', selectedIncident.responseDeadline || 'Pending classification'], ['Resolution deadline', selectedIncident.resolutionDeadline || 'Pending classification'],
             ['Impact', readableLabel(selectedIncident.impact)], ['Urgency', readableLabel(selectedIncident.urgency)], ['Priority', readableLabel(selectedIncident.priority)],
             ['Status', readableLabel(selectedIncident.status)], ['Assigned Technician', selectedIncident.assignedTechnician?.name || 'Not assigned'],
             ...['createdAt', 'updatedAt', 'acknowledgedAt', 'resolvedAt', 'verifiedAt', 'closedAt'].filter(field => selectedIncident[field]).map(field => [field.replace(/([A-Z])/g, ' $1'), new Date(selectedIncident[field]).toLocaleString()]),

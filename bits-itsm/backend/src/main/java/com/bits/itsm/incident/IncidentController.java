@@ -18,8 +18,12 @@ public class IncidentController {
     @GetMapping({"", "/my"})
     public List<View> list(Authentication auth, jakarta.servlet.http.HttpServletRequest request,
             @RequestParam(required = false) String search, @RequestParam(required = false) IncidentStatus status,
-            @RequestParam(required = false) Incident.Category category, @RequestParam(required = false) Incident.Priority priority) {
-        return service.list(auth.getName(), request.getRequestURI().endsWith("/my"), search, status, category, priority);
+            @RequestParam(required = false) Incident.Category category, @RequestParam(required = false) Incident.Priority priority,
+            @RequestParam(name = "service", required = false) Incident.ItService affectedService, @RequestParam(required = false) Long technician,
+            @RequestParam(required = false) String from, @RequestParam(required = false) String to,
+            @RequestParam(required = false) SlaClock.Status sla) {
+        return service.list(auth.getName(), request.getRequestURI().endsWith("/my"),
+                new IncidentService.SearchCriteria(search, status, category, priority, affectedService, technician, from, to, sla));
     }
     @GetMapping("/{id}") public View get(@PathVariable Long id, Authentication auth) { return service.get(id, auth.getName()); }
     @PostMapping("/{id}/edit") public View edit(@PathVariable Long id, @Valid @RequestBody Edit request, Authentication auth) { return service.edit(id, request, auth.getName()); }

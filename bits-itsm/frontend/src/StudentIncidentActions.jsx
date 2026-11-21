@@ -88,7 +88,8 @@ export default function StudentIncidentActions({ incident, onAction }) {
     {incident.status === 'NEW' && <EditReport key={incident.id} incident={incident} onAction={onAction} />}
     <section className="student-detail-section"><h3>Support Communication</h3>
       {incident.notes.length ? <ol className="technician-updates">{incident.notes.map(note => <li key={note.id}><strong>{note.author.name}</strong> · <time dateTime={note.createdAt}>{new Date(note.createdAt).toLocaleString()}</time><p>{note.content}</p></li>)}</ol> : <p>No support messages yet.</p>}
-      {incident.status === 'IN_PROGRESS' && incident.notes.some(note => note.kind === 'INFORMATION_REQUEST') && <DraftForm kind="reply" incident={incident} onAction={onAction} />}
+      {incident.status === 'AWAITING_INFO' && <p role="status"><strong>The technician needs more information.</strong> The SLA clock is paused until you reply.</p>}
+      {incident.status === 'AWAITING_INFO' && incident.notes.some(note => note.kind === 'INFORMATION_REQUEST') && <DraftForm kind="reply" incident={incident} onAction={onAction} />}
     </section>
     {incident.status === 'RESOLVED' && <section className="student-detail-section"><h3>Resolution Verification</h3><p>{incident.resolutionSummary}</p><p>{incident.resolutionSteps}</p><DraftForm kind="verification" incident={incident} onAction={onAction} /></section>}
     {['VERIFIED', 'CLOSED'].includes(incident.status) && <section className="student-detail-section"><h3>Support Feedback</h3>{incident.feedback ? <p>Rating: {incident.feedback.rating}/5 · {incident.feedback.comment || 'No comment'}</p> : <DraftForm kind="feedback" incident={incident} onAction={onAction} />}</section>}

@@ -298,3 +298,21 @@ button:focus-visible { outline: 3px solid #389ab8; outline-offset: 3px; }
 @media (max-width: 400px) {
   .technician-portal .dashboard-summary { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Insights & Analytics (charts, correlation, SLA risk) */
+.insights { display: grid; gap: 18px; }
+.insights-toolbar a.incident-view { text-decoration: none; display: inline-flex; align-items: center; }
+.insights-kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.insights-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.insights-section { min-width: 0; }
+.insights-body { padding: 0 22px 20px; }
+.insights-body .dashboard-table-scroll { margin: 0 -22px; }
+.assist-list { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 10px; }
+.assist-list button { margin-top: 6px; }
+.assist-reasons { color: #59728a; font-size: 13px; margin-top: 2px; }
+@media print {
+  .dashboard-sidebar, .dashboard-topbar, .dashboard-preview-note, .insights-toolbar, .dashboard-footer { display: none !important; }
+  .insights-grid { grid-template-columns: 1fr 1fr; }
+  .insights-section { break-inside: avoid; }
+}
+.insights-stack { display: grid; gap: 18px; }

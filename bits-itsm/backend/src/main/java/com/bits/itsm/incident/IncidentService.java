@@ -60,6 +60,27 @@ public class IncidentService {
                 catalog.all().stream().filter(c -> c.isEnabled() && c.getKind().equals("SERVICE")).map(c -> new Option(c.getCode(), c.getLabel())).toList());
     }
     public List<View> list(String email, boolean mine, String search, IncidentStatus status, Incident.Category category, Incident.Priority priority) {
+        return list(email, mine, new SearchCriteria(search, status, category, priority, null, null, null, null, null));
+    }
+    /**
+     * Combinable search over nine criteria: ID/keyword (title, description, INC label), status, category,
+     * priority, service, technician, date range (campus time zone) and SLA status. Role scoping is applied
+     * first, so a filter can never widen what a user may see.
+     */
+    public record SearchCriteria(String search, IncidentStatus status, Incident.Category category, Incident.Priority priority,
+                                 Incident.ItService service, Long technicianId, String from, String to, SlaClock.Status sla) { }
+    public List<View> list(String email, boolean mine, SearchCriteria c) {
+        String search = c.search(); IncidentStatus status = c.status(); Incident.Category category = c.category(); Incident.Priority priority = c.priority();
+        java.time.ZoneId zone = java.time.ZoneId.of("Asia/Kolkata");
+        java.time.Instant from, to;
+        try {
+            from = c.from() == null || c.from().isBlank() ? null : java.time.LocalDate.parse(c.from()).atStartOfDay(zone).toInstant();
+            to = c.to() == null || c.to().isBlank() ? null : java.time.LocalDate.parse(c.to()).plusDays(1).atStartOfDay(zone).toInstant();
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new com.bits.itsm.exception.ValidationException("Dates must use the format YYYY-MM-DD.");
+        }
+        if (from != null && to != null && !from.isBefore(to)) throw new com.bits.itsm.exception.ValidationException("The start date must not be after the end date.");
+        java.time.Instant now = java.time.Instant.now();
         User user = actor(email);
         if (mine) role(user, Role.STUDENT);
         List<Incident> found = switch (user.getRole()) {
@@ -67,11 +88,25 @@ public class IncidentService {
             case TECHNICIAN -> incidents.findByAssignedTechnicianIdOrderByCreatedAtDesc(user.getId());
             case ADMIN -> incidents.findAllByOrderByCreatedAtDesc();
         };
-        String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT).replaceFirst("^inc-?", "");
         return found.stream().filter(i -> (status == null || i.getStatus() == status) && (category == null || i.getCategory() == category)
                 && (priority == null || i.getPriority() == priority)
-                && (i.getTitle().toLowerCase(Locale.ROOT).contains(query) || i.getId().toString().contains(query)))
+                && (c.service() == null || i.getAffectedService() == c.service())
+                && (c.technicianId() == null || (i.getAssignedTechnician() != null && i.getAssignedTechnician().getId().equals(c.technicianId())))
+                && (from == null || !i.getCreatedAt().isBefore(from)) && (to == null || i.getCreatedAt().isBefore(to))
+                && (c.sla() == null || worst(i.responseSla(now), i.resolutionSla(now)) == c.sla())
+                && (i.getTitle().toLowerCase(Locale.ROOT).contains(query) || i.getId().toString().contains(query)
+                    || i.getDescription().toLowerCase(Locale.ROOT).contains(query)))
                 .map(i -> view(i, user)).toList();
+    }
+    /** Overall SLA status = the worse of the response and resolution clocks (null when no SLA yet). */
+    static SlaClock.Status worst(SlaClock.Status a, SlaClock.Status b) {
+        if (a == null) return b;
+        if (b == null) return a;
+        if (a == SlaClock.Status.BREACHED || b == SlaClock.Status.BREACHED) return SlaClock.Status.BREACHED;
+        if (a == SlaClock.Status.AT_RISK || b == SlaClock.Status.AT_RISK) return SlaClock.Status.AT_RISK;
+        if (a == SlaClock.Status.ON_TRACK || b == SlaClock.Status.ON_TRACK) return SlaClock.Status.ON_TRACK;
+        return SlaClock.Status.MET;
     }
     public List<View> team(String email) {
         User user = actor(email); role(user, Role.TECHNICIAN);
