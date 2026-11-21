@@ -49,7 +49,7 @@ The team's code (session auth, three portals, four priority strategies, two assi
 | D Smart recommendation | ✅ | `SmartRecommendation` |
 | E SLA risk detection | ✅ | `SlaRiskPredictor` |
 | F Auto-categorisation | ✅ category (keyword rules); service suggestion ❌ | `CategorySuggester` |
-| G Suggested resolution | ✅ | `ResolutionSuggester` |
+| G Suggested resolution | Removed | Dropped at the team's request (with the technician knowledge-base page) |
 | Intelligence behind interfaces; optional LLM adapter | 🟡 `SimilarityModel` interface; no LLM adapter (D14) | – |
 | Custom exception hierarchy + consistent JSON error | ✅ all 12 brief situations thrown in real code paths (DESIGN_PATTERNS.md) | `exception/` |
 | Frontend friendly errors + network retry | ✅ one retry for reads | `api.js` |

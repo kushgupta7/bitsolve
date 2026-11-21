@@ -14,22 +14,21 @@ Each member: name, role, the module they own (see TEAM.md). [NAME1] states the p
 
 ## 2:00 – 6:00 · Workflow 1 (note the three portals' different colours and home pages: teal student, indigo technician, navy/amber admin): report → auto-categorise + prioritise → assign → notify ([NAME1], [NAME3])
 1. On the login page click **Create an account** and register a new student (institutional e-mail, student ID, 12+ character password); show that a Gmail address is rejected. Sign in as the new student (or student01).
-2. **student01** → *Report Incident*: "Wi-Fi down in library reading room", description "Wireless keeps disconnecting on the 2nd floor, nobody can connect", service *Campus Wi-Fi*, impact HIGH, urgency HIGH, **people affected 250**. Submit.
+2. **student01** → *Report Incident*: "Wi-Fi down in library reading room", description "Wireless keeps disconnecting on the 2nd floor, nobody can connect", service *Campus Wi-Fi*, **people affected 250**. Submit. Note the student does not rate severity: no impact or urgency on the form.
 3. Point out the incident status **New** and the student's in-app notification.
 4. **admin01** → *All Incidents* → open it. Show the **suggested category** (Network) with its explanation and the **related incidents** panel.
-5. *Classify*: show priority **P1** and captured deadlines. [NAME3] explains the multiplicative strategy, 3×3×3 = 27 ≥ 18 (PRIORITY_ALGORITHM.md), and that the strategy can be switched at runtime under *Assignment Strategies*.
+5. *Classify*: the admin assesses **impact HIGH** and **urgency HIGH**, confirms the category, and gets priority **P1** and captured deadlines. [NAME3] explains the multiplicative strategy, 3×3×3 = 27 ≥ 18 (PRIORITY_ALGORITHM.md), and that the strategy can be switched at runtime under *Assignment Strategies*.
 6. Show **Smart technician recommendation**: top 3 with reasons. Then *Assignment Strategies* → select **Smart Recommendation**, back to the incident → **Automatically Assign**.
 7. Show notifications: technician bell, student timeline, MailHog e-mail "incident received", audit log entries (*Audit Logs*).
 
 ## 6:00 – 11:00 · Workflow 2: investigate → info request (SLA paused) → resolve → verify → feedback → close ([NAME2], [NAME4])
 1. **technician04** → *Acknowledge* (response SLA met) → *Start Investigation*.
-2. Show **Suggested resolutions**: three similar past Wi-Fi fixes (TF-IDF) and their steps.
-3. *Request Information*: "Which SSID and which device?" Status becomes **Awaiting Info**, and the detail view shows **Resolution SLA … (clock paused)**. [NAME4] explains the State pattern (`AwaitingInfoState.slaClockRunning() == false`) and that the deadline is extended by the paused time.
-4. **student01** sees "The technician needs more information" → reply. (Outside AWAITING_INFO the student can also use **Add information** at any time; the technician is notified.) Status returns to **In Progress**.
-5. Wait for the 80 % mark: an **SLA warning** notification appears (P2/P1 demo policy).
-6. *Provide Resolution* (summary + steps) → **Resolved**; the student gets an in-app notification and an e-mail in MailHog.
-7. **student01** → *Verify* → *Feedback 5/5*. **admin01** → *Close Incident*. Show the incident history timeline (who did what, when) and the admin *Audit Logs* page.
-8. [NAME2] tries an illegal action (e.g. student calls close via the API, or close on a NEW incident) and shows the JSON error `{"code":"INVALID_STATE_TRANSITION", …}`.
+2. *Request Information*: "Which SSID and which device?" Status becomes **Awaiting Info**, and the detail view shows **Resolution SLA … (clock paused)**. [NAME4] explains the State pattern (`AwaitingInfoState.slaClockRunning() == false`) and that the deadline is extended by the paused time.
+3. **student01** sees "The technician needs more information" → reply. (Outside AWAITING_INFO the student can also use **Add information** at any time; the technician is notified.) Status returns to **In Progress**.
+4. Wait for the 80 % mark: an **SLA warning** notification appears (P2/P1 demo policy).
+5. *Provide Resolution* (summary + steps) → **Resolved**; the student gets an in-app notification and an e-mail in MailHog.
+6. **student01** → *Verify* → *Feedback 5/5*. **admin01** → *Close Incident*. Show the incident history timeline (who did what, when) and the admin *Audit Logs* page.
+7. [NAME2] tries an illegal action (e.g. student calls close via the API, or close on a NEW incident) and shows the JSON error `{"code":"INVALID_STATE_TRANSITION", …}`.
 
 ## 11:00 – 16:00 · Workflow 3: similar reports → duplicates + major incident → P1 escalation ([NAME4], [NAME3])
 1. Using student01, student02 and student03, report three Wi-Fi problems within a minute, all with service *Campus Wi-Fi* and category *Network* (duplicate detection compares incidents with the same service and category) ("Wi-Fi not working in hostel", "Wireless down in Ram Bhawan", "Cannot connect to campus Wi-Fi in hostel").

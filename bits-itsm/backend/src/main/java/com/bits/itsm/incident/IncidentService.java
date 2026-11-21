@@ -153,7 +153,9 @@ public class IncidentService {
         catalog.requireEnabled("CATEGORY", request.category().name());
         catalog.requireEnabled("SERVICE", request.affectedService().name());
         priorities.criticality(request.affectedService());
-        Incident incident = new Incident(request.title(), request.description(), (Student) user, request.category(), request.affectedService(), request.impact(), request.urgency());
+        // Reporters no longer rate severity; MEDIUM/MEDIUM is a provisional placeholder until the admin assesses it.
+        Incident incident = new Incident(request.title(), request.description(), (Student) user, request.category(), request.affectedService(),
+                request.impact() == null ? Incident.Level.MEDIUM : request.impact(), request.urgency() == null ? Incident.Level.MEDIUM : request.urgency());
         incident.reportAffectedUsers(request.affectedUsers());
         incident.record(user, "CREATED", "Incident reported.", STUDENT_VISIBLE);
         incidents.saveAndFlush(incident);
@@ -164,6 +166,10 @@ public class IncidentService {
     @Transactional
     public View classify(Long id, Classification request, String email) {
         User user = actor(email); Incident incident = editable(id, user, Role.ADMIN);
+        incident.assess(request.impact(), request.urgency());
+        if (request.impact() != null || request.urgency() != null) {
+            incident.record(user, "IMPACT_ASSESSED", "Impact " + incident.getImpact() + ", urgency " + incident.getUrgency() + ".", STUDENT_VISIBLE);
+        }
         Incident.Level criticality = priorities.criticality(incident.getAffectedService());
         Incident.Priority calculated = priorities.calculate(incident, criticality);
         Incident.Priority adjusted = com.bits.itsm.priority.AffectedUsersRule.apply(calculated, incident.getAffectedUsers());

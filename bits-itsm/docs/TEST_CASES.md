@@ -36,7 +36,7 @@
 | TC26 | Correlation: 3 reports in 30 min → major incident | Normal / boundary | Wi-Fi incidents at 0,10,30,90 min | correlate | one group {1,2,3}; 31 min excluded | Pass | `IntelligentFeaturesTest.threeReportsOnOneServiceWithinThirtyMinutesFormAMajorIncident`, `…windowBoundaryIsInclusiveButOneMinuteLaterIsNot` |
 | TC27 | SLA risk rises with elapsed time / workload / MTTR | Normal | P2 incident | early vs late | LOW vs HIGH | Pass | `IntelligentFeaturesTest.slaRiskRisesWithElapsedTimeWorkloadAndHistory` |
 | TC28 | Missed deadline = risk 1.0 | Boundary | – | now > deadline | HIGH, score 1.0 | Pass | `…missedDeadlineIsAlwaysHighRiskAndUnassignedCountsAsPressure` |
-| TC29 | Suggested resolutions top-3 by TF-IDF | Normal | 5 past fixes | hostel Wi-Fi drop | most similar Wi-Fi fix first, printer fix excluded | Pass | `…suggestedResolutionsReturnTheMostSimilarFixesFirstAndAtMostThree` |
+| TC29 | Admin assesses impact and urgency at classification | Normal | report without impact/urgency | classify NETWORK, HIGH, HIGH | report stored as MEDIUM/MEDIUM (provisional); after classify HIGH/HIGH, status Classified, priority set | Pass | `PostgresIncidentTests.reporterNoLongerRatesSeverityAndAdminAssessesItAtClassification` |
 | TC30 | SMS adapter converts vendor checked exception | Exception / third-party | – | non-Indian number | `ExternalServiceException` (502) wrapping `SmsDeliveryException` | Pass | `SmsAdapterTest.adapterConvertsTheVendorsCheckedExceptionIntoExternalServiceException` |
 | TC31 | SMS failure never breaks the business action | Exception | failing gateway | SLA breach notification | recorded as not delivered, no exception | Pass | `SmsAdapterTest.providerFailureIsRecordedButNeverThrown` |
 | TC32 | Channel factory honours preferences | Normal | in-app + SMS | INCIDENT_CREATED vs SLA_BREACHED | [in-app] vs [in-app, SMS] | Pass | `SmsAdapterTest.factoryReturnsOnlyChannelsThatAcceptTheNotification` |
@@ -65,6 +65,8 @@
 | TC55 | Factor bounds and 1-minute floor | Boundary | – | 0.1, 5.0; P1 1/2 min × 0.25 | rejected; response stays 1 min | Pass | `…serviceFactorOutsideRangeIsRejected`, `…defaultFactorKeepsPolicyTargetsAndTinyTargetsStayAtLeastOneMinute` |
 | TC56 | Technician sets own availability | Normal | technician03 AVAILABLE | PUT BUSY, then AVAILABLE | stored; BUSY not eligible for new work; student gets 403 | Pass | `PostgresAssignmentTests.technicianSetsOwnAvailabilityAndOnlyAvailableTechniciansAreEligible` |
 | TC57 | Availability rules on the entity | Boundary | new technician | BUSY, UNAVAILABLE, null | only AVAILABLE is eligible; null rejected, status unchanged | Pass | `TechnicianAvailabilityTest` |
+| TC58 | Assessment only before classification | Boundary | NEW incident | assess(HIGH, null), classify, assess again | impact HIGH, urgency kept MEDIUM; second assessment rejected | Pass | `IncidentWorkflowTests.adminAssessmentReplacesProvisionalImpactAndUrgencyOnlyBeforeClassification` |
+| TC59 | Demo setup leaves no empty dropdown | Normal | showcase configuration | every service, skill and category | each service has a criticality; each skill held by ≥2 technicians | Pass | `DemoShowcaseSeederTest` |
 
 Postgres* tests run only with `BITSOLVE_DB_TESTS=true` against a disposable PostgreSQL database.
 

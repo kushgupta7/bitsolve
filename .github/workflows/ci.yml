@@ -112,6 +112,10 @@ jobs:
           echo "GET incidents -> $code"
           [ "$code" = 200 ] || { echo "::error title=smoke::incident list failed (HTTP $code): $(head -c 300 incidents.json)"; exit 1; }
           python3 -c 'import json; print("incidents visible to student01:", len(json.load(open("incidents.json"))))'
+          # The report form must have something to choose (services start disabled until configured).
+          code=$(curl -s -o options.json -w '%{http_code}' -b "$jar" http://localhost:8080/api/incidents/options)
+          python3 -c 'import json,sys; d=json.load(open("options.json")); print("report form:", len(d["categories"]), "categories,", len(d["services"]), "services"); sys.exit(0 if d["categories"] and d["services"] else 1)' \
+            || { echo "::error title=smoke::report form has empty dropdowns (HTTP $code): $(head -c 300 options.json)"; exit 1; }
       - name: App logs on failure
         if: failure()
         working-directory: bits-itsm

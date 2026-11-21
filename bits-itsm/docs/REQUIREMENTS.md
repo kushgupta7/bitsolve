@@ -16,7 +16,7 @@
 | FR2 | Admin creates, edits, enables/disables users (Student/Technician/Admin) | Done |
 | FR3 | Admin manages technician skills, availability and maximum workload; technicians set their own status (Available / Busy / Unavailable) from their home page | Done |
 | FR4 | Admin manages IT services (label, enabled, business criticality, SLA factor) and incident categories | Done |
-| FR5 | Student reports an incident (title, description, category, service, impact, urgency, optional number of people affected) | Done |
+| FR5 | Student reports an incident (title, description, category, service, optional number of people affected); the administrator assesses impact and urgency when classifying | Done |
 | FR5a | Student adds information to an open incident at any time; technician is notified | Done |
 | FR6 | System suggests a category from the text and warns about possible duplicates | Done |
 | FR7 | Admin classifies: system calculates priority with the active strategy (raised one level if > 100 people affected) and captures SLA deadlines scaled by the service's SLA factor | Done |

@@ -10,14 +10,17 @@ import com.bits.itsm.incident.InvestigationNote.Visibility;
 public final class IncidentData {
     private IncidentData() { }
     public record Create(@NotBlank @Size(max = 100) String title, @NotBlank @Size(min = 20, max = 2000) String description,
-            @NotNull Category category, @NotNull ItService affectedService, @NotNull Level impact, @NotNull Level urgency,
+            @NotNull Category category, @NotNull ItService affectedService, Level impact, Level urgency, // optional: assessed by the admin at classification
             @Min(1) @Max(100000) Integer affectedUsers) {
         /** Older clients that do not send the (optional) number of affected users. */
         public Create(String title, String description, Category category, ItService affectedService, Level impact, Level urgency) {
             this(title, description, category, affectedService, impact, urgency, null);
         }
     }
-    public record Classification(@NotNull Category category) { }
+    /** The administrator confirms the category and assesses impact and urgency (omitted values keep the provisional ones). */
+    public record Classification(@NotNull Category category, Level impact, Level urgency) {
+        public Classification(Category category) { this(category, null, null); }
+    }
     public record Edit(@NotBlank @Size(max = 100) String title, @NotBlank @Size(min = 20, max = 2000) String description) { }
     public record Assignment(@NotNull @Positive Long technicianId) { }
     public record Note(@NotBlank @Size(max = 2000) String content, @NotNull Visibility visibility) { }

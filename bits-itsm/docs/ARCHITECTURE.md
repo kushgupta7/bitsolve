@@ -26,7 +26,6 @@ flowchart TB
       DUP[DuplicateDetector]
       COR[IncidentCorrelator]
       RISK[SlaRiskPredictor]
-      SUG["ResolutionSuggester<br/>TF-IDF"]
       CAT[CategorySuggester]
     end
     subgraph Bg["@Scheduled background jobs"]

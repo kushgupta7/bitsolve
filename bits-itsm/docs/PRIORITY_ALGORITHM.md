@@ -2,7 +2,7 @@
 
 Priority is always calculated in Java (never trusted from the browser) when an administrator **classifies** a NEW incident. Inputs:
 
-* **Impact** and **Urgency**: chosen by the student: LOW / MEDIUM / HIGH.
+* **Impact** and **Urgency**: assessed by the administrator when classifying: LOW / MEDIUM / HIGH. Reporters do not rate severity themselves (they tend to rate everything HIGH); a new report carries a provisional MEDIUM / MEDIUM until it is classified.
 * **Business criticality**: read from the selected IT service's database record (LOW / MEDIUM / HIGH, set by an admin under *IT Services*). A service with no criticality configured cannot receive incidents.
 
 The administrator picks one of four strategies at runtime (*Assignment Strategies → Priority Strategy*). The choice is persisted in `priority_settings`, audited as `PRIORITY_CONFIGURATION_CHANGED`, and applies to **future** classifications only: captured priorities and SLA deadlines never change retroactively. The resulting priority selects the SLA policy (`sla_policies`) whose targets are captured on the incident.

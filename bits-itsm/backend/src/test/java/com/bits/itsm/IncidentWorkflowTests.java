@@ -19,6 +19,15 @@ class IncidentWorkflowTests {
         assertEquals(Incident.Priority.P2, i.getPriority());
         assertThrows(InvalidStateTransitionException.class, i::start);
     }
+    @Test void adminAssessmentReplacesProvisionalImpactAndUrgencyOnlyBeforeClassification() {
+        Incident i = new Incident("Network outage", "Campus network is unavailable in the library.", student, Incident.Category.NETWORK, Incident.ItService.CAMPUS_NETWORK, Incident.Level.MEDIUM, Incident.Level.MEDIUM);
+        i.assess(Incident.Level.HIGH, null);
+        assertEquals(Incident.Level.HIGH, i.getImpact());
+        assertEquals(Incident.Level.MEDIUM, i.getUrgency()); // omitted value keeps the provisional level
+        i.classify(Incident.Category.NETWORK, Incident.Priority.P2);
+        assertThrows(InvalidStateTransitionException.class, () -> i.assess(Incident.Level.LOW, Incident.Level.LOW));
+        assertEquals(Incident.Level.HIGH, i.getImpact());
+    }
     @Test void rejectsSkippedTransitions() {
         Incident i = incident();
         assertThrows(InvalidStateTransitionException.class, i::close);

@@ -157,4 +157,17 @@ class PostgresIncidentTests {
         postAs("admin01", "/" + id + "/classify", Map.of("category", "NETWORK"), 200);
         postAs("student01", "/" + id + "/edit", change, 409);
     }
+    @Test void reporterNoLongerRatesSeverityAndAdminAssessesItAtClassification() throws Exception {
+        var report = new java.util.HashMap<String, Object>(payload());
+        report.remove("impact"); report.remove("urgency");
+        JsonNode created = postAs("student01", "", report, 201);
+        assertEquals("MEDIUM", created.get("impact").asText());   // provisional until assessed
+        assertEquals("MEDIUM", created.get("urgency").asText());
+        long id = created.get("id").asLong();
+        JsonNode classified = postAs("admin01", "/" + id + "/classify", Map.of("category", "NETWORK", "impact", "HIGH", "urgency", "HIGH"), 200);
+        assertEquals("HIGH", classified.get("impact").asText());
+        assertEquals("HIGH", classified.get("urgency").asText());
+        assertEquals("CLASSIFIED", classified.get("status").asText());
+        assertNotEquals("PENDING", classified.get("priority").asText());
+    }
 }

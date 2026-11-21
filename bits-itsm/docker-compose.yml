@@ -37,6 +37,8 @@ services:
       DB_PASSWORD: bitsolve-demo
       SESSION_COOKIE_SECURE: "false"
       BITSOLVE_DEMO_SEED_ENABLED: "true"
+      # Demo only: enables every IT service with a criticality and gives demo technicians several skills.
+      BITSOLVE_DEMO_SHOWCASE: "true"
       DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-BitsolveDemo2026}
       # Route e-mail to MailHog instead of Gmail (plain SMTP, no TLS inside the compose network).
       SPRING_MAIL_HOST: mailhog

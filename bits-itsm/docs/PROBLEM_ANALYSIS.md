@@ -28,7 +28,7 @@ When a campus IT service fails (Wi-Fi in a hostel block, the ERP student portal 
 * **Assignment strategies** (skill, load, round-robin, priority/seniority, smart weighted recommendation) with audited fallback, plus transfer/collaboration approval workflows.
 * **Background SLA monitoring**, warnings at 80 %, breaches, and a **Chain-of-Responsibility escalation** for unacknowledged P1s.
 * **Event-driven notifications** (in-app, e-mail outbox, simulated SMS) and an **immutable audit trail** (Observer).
-* **Intelligence**: auto-categorisation, duplicate detection, major-incident correlation, SLA-risk prediction, smart technician recommendation and suggested resolutions.
+* **Intelligence**: auto-categorisation, duplicate detection, major-incident correlation, SLA-risk prediction and smart technician recommendation.
 * **Analytics**: KPIs, trends, service analysis, workload, CSV/PDF export.
 
 ## Assumptions

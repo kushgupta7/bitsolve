@@ -10,7 +10,6 @@ import com.bits.itsm.incident.state.IncidentLifecycle;
 import com.bits.itsm.incident.state.IncidentState;
 import com.bits.itsm.intelligence.CorrelationMonitor;
 import com.bits.itsm.intelligence.IncidentCorrelator;
-import com.bits.itsm.intelligence.ResolutionSuggester;
 import com.bits.itsm.intelligence.SlaRiskPredictor;
 import com.bits.itsm.notification.sms.SmsChannel;
 import com.bits.itsm.sla.SlaCalculator;
@@ -57,7 +56,6 @@ public class InsightsService {
     private final CorrelationMonitor correlation;
     private final SmsChannel sms;
     private final SlaRiskPredictor risk = new SlaRiskPredictor();
-    private final ResolutionSuggester suggester = new ResolutionSuggester();
 
     public InsightsService(IncidentRepository incidents, UserRepository users, IncidentLookup lookup, SlaCalculator calculator,
                            WorkloadService workloads, CorrelationMonitor correlation, SmsChannel sms) {
@@ -112,18 +110,6 @@ public class InsightsService {
         Map<Incident.Category, Duration> out = new EnumMap<>(Incident.Category.class);
         samples.forEach((c, list) -> out.put(c, Duration.ofMillis(Math.round(list.stream().mapToLong(Long::longValue).average().orElse(0)))));
         return out;
-    }
-
-    /** Intelligent feature G for the technician working the incident (or an admin). */
-    public List<ResolutionSuggester.Suggestion> suggestedResolutions(Long id, String email) {
-        User user = actor(email, Role.ADMIN, Role.TECHNICIAN);
-        Incident incident = incidents.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Incident not found."));
-        if (user.getRole() == Role.TECHNICIAN && !incident.participates(user.getId())) throw new UnauthorizedOperationException("You do not have access to this incident.");
-        List<ResolutionSuggester.PastResolution> history = incidents.findAllByOrderByCreatedAtDesc().stream()
-                .filter(i -> !i.getId().equals(id) && i.getResolutionSummary() != null)
-                .map(i -> new ResolutionSuggester.PastResolution(i.getId(), i.getTitle(), i.getDescription(), i.getResolutionSummary(), i.getResolutionSteps()))
-                .toList();
-        return suggester.suggest(incident.getTitle(), incident.getDescription(), history, 3);
     }
 
     public List<SmsChannel.SentSms> smsOutbox(String email) {

@@ -2,7 +2,7 @@
 
 CS F213 Object-Oriented Programming, BITS Pilani Hyderabad, Sem I 2026-27 · Group **[GROUP_NO]**
 
-Campus IT incident management with three role-specific portals (Student, Technician, Administrator), a State-pattern lifecycle, runtime-switchable priority and assignment strategies, SLA monitoring with escalation, event-driven notifications (in-app, e-mail, simulated SMS), an immutable audit trail, and seven rule-based intelligent features. Java 25 · Spring Boot 4.1 · PostgreSQL · React 19 + Vite + Recharts.
+Campus IT incident management with three role-specific portals (Student, Technician, Administrator), a State-pattern lifecycle, runtime-switchable priority and assignment strategies, SLA monitoring with escalation, event-driven notifications (in-app, e-mail, simulated SMS), an immutable audit trail, and six rule-based intelligent features. Java 25 · Spring Boot 4.1 · PostgreSQL · React 19 + Vite + Recharts.
 
 ![Architecture](bits-itsm/docs/diagrams/architecture.png)
 
@@ -47,7 +47,7 @@ All e-mails end in `@hyderabad.bits-pilani.ac.in`.
 | Notifications | ✅ Observer: in-app (persisted), e-mail outbox with retry, simulated SMS via **Adapter** |
 | Audit trail | ✅ Immutable audit + per-incident history, admin filter |
 | Search, filtering, reporting | ✅ 9 combinable criteria (API and UI), Insights & Analytics dashboards (Recharts), CSV + print-to-PDF export |
-| ≥2 intelligent features | ✅ 7: duplicate detection, major-incident correlation, P1 escalation (Chain of Responsibility), smart technician recommendation, SLA-risk prediction, auto-categorisation, suggested resolutions (TF-IDF) |
+| ≥2 intelligent features | ✅ 6: duplicate detection, major-incident correlation, P1 escalation (Chain of Responsibility), smart technician recommendation, SLA-risk prediction, auto-categorisation |
 | ≥2 design patterns | ✅ State, Strategy, Observer, Factory, Adapter, Chain of Responsibility, Repository ([DESIGN_PATTERNS.md](bits-itsm/docs/DESIGN_PATTERNS.md)) |
 | Exception handling | ✅ `BitsolveException` hierarchy covering all 12 situations in the brief, consistent JSON errors `{timestamp,status,code,message,path}` |
 | Persistence | ✅ PostgreSQL, Flyway V1–V8 |
@@ -89,7 +89,7 @@ PostgreSQL tests need a disposable database (see *Builds and tests* below). GitH
 | Incidents | `GET/POST /api/incidents` (filters: `search,status,category,priority,service,technician,from,to,sla`), `GET /api/incidents/my`, `GET /api/incidents/{id}`, `POST /api/incidents/{id}/{classify,acknowledge,start,notes,information,reply,comment,resolve,verify,close,feedback,edit}`, `GET /api/incidents/lifecycle` |
 | Assignment | `POST /api/incidents/{id}/{assign,auto-assign}`, `GET /api/incidents/{id}/recommendations`, `GET/PUT /api/admin/assignment-strategy`, transfer/collaboration request endpoints |
 | Priority & SLA | `GET/PUT /api/admin/priority-strategy`, `POST …/preview`, `GET/PUT /api/admin/sla-policies/{priority}`, `GET /api/admin/sla/violations`, `GET /api/admin/escalations` |
-| Insights | `GET /api/admin/insights/{analytics,major-incidents,sla-risk}`, `GET /api/technician/sla-risk`, `GET /api/{technician,admin}/incidents/{id}/suggested-resolutions`, `GET /api/admin/reports/incidents.csv`, `GET /api/admin/sms-outbox` |
+| Insights | `GET /api/admin/insights/{analytics,major-incidents,sla-risk}`, `GET /api/technician/sla-risk`, `GET /api/admin/reports/incidents.csv`, `GET /api/admin/sms-outbox` |
 | Admin | users, catalog (services/categories), reports, audit, e-mail outbox under `/api/admin/**` |
 
 ## Folder structure
@@ -269,7 +269,7 @@ Administrator ? Assignment Strategies ? Priority Strategy supports exactly four 
 - MATRIX: nine P1?P4 cells, ordered by impact rows and urgency columns, both Low/Medium/High. HIGH service criticality promotes by 0?3 levels, capped at P1.
 - RULE_BASED: ordered unique predefined conditions ALL_HIGH, HIGH_IMPACT_AND_URGENCY, CRITICAL_SERVICE, HIGH_IMPACT, HIGH_URGENCY; first match wins. Administrators can reorder/remove conditions, choose each result and set a P1?P4 fallback. Empty rules use the fallback.
 
-The server validates all saved parameters. Priority comes exclusively from Java. Students supply impact/urgency; criticality comes only from the selected service's PostgreSQL record, never incident request fields. A missing service or criticality is rejected. The existing classification lifecycle is retained: creation validates service configuration, classification calculates and captures priority/criticality/SLA targets. Changing the strategy affects future classifications without restarting; existing incident priorities and deadlines are not recalculated.
+The server validates all saved parameters. Priority comes exclusively from Java. Students describe the problem (and optionally how many people are affected); the administrator assesses impact/urgency when classifying; criticality comes only from the selected service's PostgreSQL record, never incident request fields. A missing service or criticality is rejected. The existing classification lifecycle is retained: creation validates service configuration, classification calculates and captures priority/criticality/SLA targets. Changing the strategy affects future classifications without restarting; existing incident priorities and deadlines are not recalculated.
 
 GET/PUT /api/admin/priority-strategy reads/saves configuration. POST /api/admin/priority-strategy/preview accepts { configuration, impact, urgency, affectedService } and returns { priority, criticality } without saving. Preview also reads criticality from PostgreSQL. All endpoints require an administrator session; mutations/previews require CSRF. Omitted parameter groups from older clients retain the saved group; invalid supplied values are rejected.
 

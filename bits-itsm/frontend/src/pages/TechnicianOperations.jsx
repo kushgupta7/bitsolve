@@ -139,6 +139,7 @@ export default function TechnicianOperations({ action, incident, technicianId, o
             })}
           </select> : <textarea id={`operation-${field.name}`} name={field.name} rows={3} maxLength={2000} value={values[field.name] || ''} onChange={change} required={!field.optional} aria-invalid={Boolean(errors[field.name])} aria-describedby={`operation-${field.name}-error`} />}
           <p id={`operation-${field.name}-error`} className="report-error" role="alert">{errors[field.name]}</p>
+          {field.name === 'technicianId' && onAction && !loading && !candidates.length && <p className="report-guidance" role="status">{action === 'collaboration' && !values.skill ? 'Choose the required skill first to see matching technicians.' : `No other technician with the ${readableLabel((action === 'collaboration' ? values.skill : incident.category) || 'required')} skill is available with spare capacity right now. Busy or unavailable technicians are not listed.`}</p>}
         </div>
         {field.name === 'technicianId' && receiver && <section className="technician-candidate" aria-label="Selected technician details">
           <dl className="incident-details"><div><dt>Skills</dt><dd>{receiver.skills.map(readableLabel).join(', ')}</dd></div><div><dt>Availability</dt><dd>{readableLabel(receiver.availability)}</dd></div>

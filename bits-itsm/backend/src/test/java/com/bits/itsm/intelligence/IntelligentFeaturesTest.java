@@ -70,21 +70,6 @@ class IntelligentFeaturesTest {
         assertTrue(commonMatch >= 0 && commonMatch < 1);
     }
 
-    @Test void suggestedResolutionsReturnTheMostSimilarFixesFirstAndAtMostThree() {
-        var history = List.of(
-                new ResolutionSuggester.PastResolution(1L, "Wi-Fi drops in hostel", "Wireless keeps disconnecting in Ram Bhawan", "Replaced access point", "Swapped AP-12"),
-                new ResolutionSuggester.PastResolution(2L, "Printer jam", "Lab printer jams on every page", "Cleared rollers", "Opened tray"),
-                new ResolutionSuggester.PastResolution(3L, "Wi-Fi slow in library", "Wireless very slow on second floor", "Moved channel", "Changed to channel 11"),
-                new ResolutionSuggester.PastResolution(4L, "Portal login fails", "Cannot sign in to ERP portal", "Reset SSO session", "Cleared cache"),
-                new ResolutionSuggester.PastResolution(5L, "Wi-Fi outage", "Wireless down across hostel block", "Restarted controller", "Rebooted WLC"));
-        var suggestions = new ResolutionSuggester().suggest("Hostel Wi-Fi disconnecting", "Wireless keeps dropping in hostel rooms", history, 3);
-        assertFalse(suggestions.isEmpty());
-        assertTrue(suggestions.size() <= 3);
-        assertEquals(1L, suggestions.get(0).incidentId());
-        assertTrue(suggestions.stream().noneMatch(s -> s.incidentId() == 2L));
-        assertTrue(new ResolutionSuggester().suggest("x", "y", List.of(), 3).isEmpty());
-    }
-
     @Test void jaccardModelMatchesTheExistingDuplicateSimilarity() {
         assertEquals(TextSimilarity.similarity("wifi down", "wi-fi outage"), SimilarityModel.jaccard().similarity("wifi down", "wi-fi outage"), 1e-12);
     }

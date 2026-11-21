@@ -6,14 +6,14 @@ import Button27 from '../components/ui/button-27.jsx';
 import NavIcon from '../components/NavIcon.jsx';
 import { TechnicianFocus, Welcome } from '../HomePanels.jsx';
 import TechnicianOperations, { operationLabels } from './TechnicianOperations.jsx';
-import { KnowledgeBase, NotificationCenter, SavedKnowledge } from './TechnicianResources.jsx';
+import { NotificationCenter } from './TechnicianResources.jsx';
 import { incidentStatuses, readableLabel } from '../MyIncidents.jsx';
 import { demoIncidents, technicians, users, slaPolicies, auditLogs, investigationNotes, studentResponses, supportRequests, transferRequests, collaborationRequests, technicianNotifications, technicianWorkload, isActive } from '../demoData.js';
 
 const priorities = { P1: 'Critical', P2: 'High', P3: 'Medium', P4: 'Low' };
 const slaStates = ['ON_TRACK', 'AT_RISK', 'BREACHED', 'MET'];
 const emptyFilters = { search: '', status: '', priority: '', category: '', slaStatus: '' };
-const pages = { dashboard: 'Dashboard', assigned: 'Assigned Incidents', team: 'My Team Incidents', transfers: 'Transfer Requests', investigation: 'Investigation', workload: 'My Workload', knowledge: 'Knowledge Base', notifications: 'Notifications', profile: 'Profile' };
+const pages = { dashboard: 'Dashboard', assigned: 'Assigned Incidents', team: 'My Team Incidents', transfers: 'Transfer Requests', investigation: 'Investigation', workload: 'My Workload', notifications: 'Notifications', profile: 'Profile' };
 const dateLabel = (value) => value ? value.slice(0, 16).replace('T', ' ') : 'Not provided';
 const userName = (id) => users.find((user) => user.id === id)?.name || 'Not provided';
 
@@ -88,7 +88,7 @@ function DashboardHome({ incidents, technician, workload, onView, onAction, onNa
     <section className="dashboard-welcome"><div><h2>Welcome back, {technician.name.split(' ')[0]}!</h2><p>Manage assigned IT incidents, track priorities, and monitor your support workload.</p></div></section>
     <SummaryCards items={summary} label="Technician incident summary" />
     <p className="report-guidance">Primary assignments only. Pending: Assigned. In progress: Acknowledged or In Progress. Resolved: Resolved, Verified or Closed. High priority: active P1/P2. SLA at risk: active AT_RISK. Priority and SLA counts can overlap with status counts.</p>
-    <section className="technician-section" aria-label="Quick Actions"><div className="report-actions">{[['assigned', 'View Assigned Incidents'], ['workload', 'View My Workload'], ['transfers', 'View Transfer Requests'], ['knowledge', 'Open Knowledge Base'], ['notifications', 'View Notifications']].map(([page, label]) => <button key={page} type="button" className="report-clear" onClick={() => onNavigate(page)}>{label}</button>)}</div></section>
+    <section className="technician-section" aria-label="Quick Actions"><div className="report-actions">{[['assigned', 'View Assigned Incidents'], ['workload', 'View My Workload'], ['transfers', 'View Transfer Requests'], ['notifications', 'View Notifications']].map(([page, label]) => <button key={page} type="button" className="report-clear" onClick={() => onNavigate(page)}>{label}</button>)}</div></section>
     <DetailSection title="Important Alerts"><ul className="technician-alerts">
       <li><strong>{slaAlerts.length} incident(s) need SLA attention.</strong> Review their warnings and deadlines below.</li>
       <li>{workload.total >= technician.workloadLimit ? 'Your current workload is high. Consider requesting incident redistribution.' : 'Workload is below the illustrative limit.'} <button type="button" className="incident-view" onClick={() => onNavigate('workload')}>Review Workload</button></li>
@@ -379,7 +379,6 @@ export default function TechnicianDashboard({ incidents = demoIncidents, session
     case 'details': content = selected && <IncidentDetails incident={selected} backLabel={pages[returnPage]} onBack={() => navigate(returnPage)} onAction={openOperation} />; break;
     case 'assigned': content = <AssignedIncidents incidents={assigned} filters={filters} onFilter={(event) => { const { name, value } = event.target; setFilters((previous) => ({ ...previous, [name]: value })); }} onClear={() => setFilters(emptyFilters)} onView={viewDetails} />; break;
     case 'workload': content = <MyWorkload key={technicianId} technician={technician} workload={workload} onView={viewDetails} onAction={openOperation} />; break;
-    case 'knowledge': content = <KnowledgeBase incidents={incidents} accessibleIds={accessibleIds} onView={viewDetails} />; break;
     case 'notifications': content = <NotificationCenter key={technicianId} technicianId={technicianId} accessibleIds={accessibleIds} readIds={readIds} onRead={(id) => setReadIds((previous) => previous.includes(id) ? previous : [...previous, id])} onView={viewDetails} />; break;
     case 'profile': content = sessionUser ? <DetailSection title="Technician Profile" items={[
       ['Name', sessionUser.name], ['Institutional Email', sessionUser.email], ['Role', sessionUser.role],
@@ -387,7 +386,6 @@ export default function TechnicianDashboard({ incidents = demoIncidents, session
     default: content = <DashboardHome incidents={assigned} technician={technician} workload={workload} onView={viewDetails} onAction={openOperation} onNavigate={navigate} />;
   }
 
-  if (sessionUser && page === 'knowledge') content = <SavedKnowledge />;
   if (sessionUser && page === 'notifications') content = <Notifications live role="TECHNICIAN" />;
   if (sessionUser && ['assigned', 'investigation'].includes(page)) content = <LiveIncidents role="TECHNICIAN" team={page === 'investigation'} />;
   if (sessionUser && page === 'dashboard') content = <><Welcome user={sessionUser} subtitle="Your assigned incidents, ranked by what needs you first." /><TechnicianFocus /><LiveIncidents role="TECHNICIAN" /></>;

@@ -28,7 +28,7 @@ const BY_LABEL = {
   'manage technicians': 'wrench', 'manage users': 'user', 'it services': 'server', 'incident categories': 'tag', 'sla policies': 'clock',
   'assignment strategies': 'sliders', escalations: 'alert', 'reports & analytics': 'file', 'audit logs': 'shield', notifications: 'bell', settings: 'gear',
   'report incident': 'plus', 'my incidents': 'list', profile: 'user', 'assigned incidents': 'list', 'my team incidents': 'team', 'transfer requests': 'swap',
-  investigation: 'search', 'my workload': 'gauge', 'knowledge base': 'book',
+  investigation: 'search', 'my workload': 'gauge',
 };
 
 export default function NavIcon({ name }) {

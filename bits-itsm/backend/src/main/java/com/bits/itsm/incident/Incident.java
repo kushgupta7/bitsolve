@@ -99,6 +99,12 @@ public class Incident {
     }
 
     // State changes are centralized here; callers cannot set an arbitrary status.
+    /** Administrator's assessment before priority calculation; a null value keeps the current (provisional) level. */
+    public void assess(Level impact, Level urgency) {
+        require(IncidentStatus.NEW);
+        if (impact != null) this.impact = impact;
+        if (urgency != null) this.urgency = urgency;
+    }
     public void classify(Category category, Priority calculated) {
         require(IncidentStatus.NEW);
         if (calculated == null || calculated == Priority.PENDING) throw new IllegalArgumentException("A calculated priority is required.");

@@ -19,20 +19,3 @@ export function Recommendations({ incident, onPick }) {
     </li>)}</ol> : <p>No eligible technician is available.</p>}
   </section>;
 }
-
-/** Intelligent feature G: how the three most similar past incidents were resolved (TF-IDF similarity). */
-export function SuggestedResolutions({ incident, role }) {
-  const [items, setItems] = useState(null);
-  const [error, setError] = useState('');
-  useEffect(() => {
-    let active = true;
-    apiRequest(`${role === 'ADMIN' ? 'admin' : 'technician'}/incidents/${incident.id}/suggested-resolutions`).then(data => { if (active) setItems(data); }).catch(e => { if (active) setError(e.message); });
-    return () => { active = false; };
-  }, [incident.id, role]);
-  return <section className="student-detail-section"><h3>Suggested resolutions</h3>
-    {error ? <p className="report-error">{error}</p> : !items ? <p role="status">Searching past resolutions…</p> : items.length ? <ol className="assist-list">{items.map(s => <li key={s.incidentId}>
-      <strong>INC-{s.incidentId}: {s.title}</strong> · {Math.round(s.similarity * 100)}% similar
-      <div>{s.summary}</div>{s.steps && <div className="assist-reasons">Steps: {s.steps}</div>}
-    </li>)}</ol> : <p>No sufficiently similar resolved incident yet.</p>}
-  </section>;
-}

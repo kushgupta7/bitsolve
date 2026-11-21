@@ -1,7 +1,6 @@
 package com.bits.itsm.api;
 
 import com.bits.itsm.intelligence.IncidentCorrelator;
-import com.bits.itsm.intelligence.ResolutionSuggester;
 import com.bits.itsm.intelligence.SlaRiskPredictor;
 import com.bits.itsm.notification.sms.SmsChannel;
 import java.util.List;
@@ -26,8 +25,6 @@ public class InsightsController {
     @GetMapping({"/admin/insights/sla-risk", "/technician/sla-risk"}) public List<SlaRiskPredictor.Assessment> risk(Authentication auth) { return service.slaRisk(auth.getName()); }
     @GetMapping("/admin/insights/analytics") public InsightsService.Analytics analytics(Authentication auth) { return service.analytics(auth.getName()); }
     @GetMapping("/admin/sms-outbox") public List<SmsChannel.SentSms> sms(Authentication auth) { return service.smsOutbox(auth.getName()); }
-    @GetMapping({"/technician/incidents/{id}/suggested-resolutions", "/admin/incidents/{id}/suggested-resolutions"})
-    public List<ResolutionSuggester.Suggestion> suggestions(@PathVariable Long id, Authentication auth) { return service.suggestedResolutions(id, auth.getName()); }
 
     @GetMapping("/admin/reports/incidents.csv")
     public ResponseEntity<String> csv(Authentication auth) {

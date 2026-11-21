@@ -58,11 +58,11 @@ Backend (terminal 1, in `bits-itsm/backend`):
 ```
 # macOS / Linux
 DB_USER=bitsolve DB_PASSWORD=bitsolve-dev SPRING_PROFILES_ACTIVE=dev SESSION_COOKIE_SECURE=false \
-BITSOLVE_DEMO_SEED_ENABLED=true DEMO_USER_PASSWORD=BitsolveDemo2026 ./mvnw spring-boot:run
+BITSOLVE_DEMO_SEED_ENABLED=true BITSOLVE_DEMO_SHOWCASE=true DEMO_USER_PASSWORD=BitsolveDemo2026 ./mvnw spring-boot:run
 ```
 ```
 :: Windows (cmd)
-set DB_USER=bitsolve& set DB_PASSWORD=bitsolve-dev& set SPRING_PROFILES_ACTIVE=dev& set SESSION_COOKIE_SECURE=false& set BITSOLVE_DEMO_SEED_ENABLED=true& set DEMO_USER_PASSWORD=BitsolveDemo2026& mvnw.cmd spring-boot:run
+set DB_USER=bitsolve& set DB_PASSWORD=bitsolve-dev& set SPRING_PROFILES_ACTIVE=dev& set SESSION_COOKIE_SECURE=false& set BITSOLVE_DEMO_SEED_ENABLED=true& set BITSOLVE_DEMO_SHOWCASE=true& set DEMO_USER_PASSWORD=BitsolveDemo2026& mvnw.cmd spring-boot:run
 ```
 
 Frontend with live reload (terminal 2, in `bits-itsm/frontend`): `npm ci`, then `npm run dev`, and open the

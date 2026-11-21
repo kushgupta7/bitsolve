@@ -60,14 +60,6 @@ public class ServicesController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sign in with an enabled account."));
     }
 
-    public record Knowledge(Long incidentId, String title, String category, String service, String summary, String steps) { }
-    @GetMapping("/technician/knowledge") @org.springframework.transaction.annotation.Transactional(readOnly = true)
-    public List<Knowledge> knowledge() {
-        return incidents.findAllByOrderByCreatedAtDesc().stream()
-                .filter(i -> i.getStatus() == com.bits.itsm.incident.IncidentStatus.VERIFIED || i.getStatus() == com.bits.itsm.incident.IncidentStatus.CLOSED)
-                .map(i -> new Knowledge(i.getId(), i.getTitle(), i.getCategory().name(), i.getAffectedService().getLabel(), i.getResolutionSummary(), i.getResolutionSteps())).toList();
-    }
-
     @GetMapping("/notifications")
     public List<InAppNotification> myNotifications(Authentication auth) {
         return inApp.getFor(currentUserId(auth));
