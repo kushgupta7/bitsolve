@@ -126,7 +126,7 @@ public class IncidentService {
     @Transactional
     public View note(Long id, Note request, String email) {
         User user = actor(email); Incident incident = editable(id, user, Role.TECHNICIAN, true);
-        incident.require(IncidentStatus.IN_PROGRESS);
+        incident.requireAny(IncidentStatus.IN_PROGRESS, IncidentStatus.AWAITING_INFO);
         incident.addNote(user, request.content(), request.visibility(), NOTE);
         incident.record(user, "NOTE_ADDED", "Investigation note added.", request.visibility());
         incidents.flush();
@@ -136,8 +136,13 @@ public class IncidentService {
     @Transactional
     public View information(Long id, Message request, String email, boolean reply) {
         User user = actor(email); Incident incident = editable(id, user, reply ? Role.STUDENT : Role.TECHNICIAN);
-        incident.require(IncidentStatus.IN_PROGRESS);
-        if (reply && incident.getNotes().stream().noneMatch(n -> n.getKind() == INFORMATION_REQUEST)) throw new IllegalStateException("There is no information request to reply to.");
+        // State pattern: a request moves IN_PROGRESS -> AWAITING_INFO (SLA paused); the reply moves it back.
+        if (reply) {
+            if (incident.getNotes().stream().noneMatch(n -> n.getKind() == INFORMATION_REQUEST)) throw new IllegalStateException("There is no information request to reply to.");
+            incident.informationReceived();
+        } else {
+            incident.requestInformation();
+        }
         incident.addNote(user, request.content(), STUDENT_VISIBLE, reply ? STUDENT_REPLY : INFORMATION_REQUEST);
         return finish(incident, user, reply ? "STUDENT_REPLIED" : "INFORMATION_REQUESTED", reply ? "Student replied to support." : "Technician requested additional information.");
     }
@@ -172,6 +177,38 @@ public class IncidentService {
         incident.giveFeedback((Student) user, request.rating(), request.comment());
         return finish(incident, user, "FEEDBACK_SUBMITTED", "Reporter submitted support feedback.");
     }
+    /**
+     * Auto-closure policy: an incident left RESOLVED or VERIFIED with no reporter activity since
+     * {@code cutoff} is verified/closed by the system. History is attributed to the first enabled
+     * administrator because every history row needs an actor; the description makes the automation explicit.
+     */
+    @Transactional
+    public int autoClose(java.time.Instant cutoff) {
+        User system = users.findAll().stream().filter(u -> u.getRole() == Role.ADMIN && u.isEnabled()).findFirst().orElse(null);
+        if (system == null) return 0;
+        int closed = 0;
+        for (Incident stale : incidents.findByStatusInAndUpdatedAtBefore(List.of(IncidentStatus.RESOLVED, IncidentStatus.VERIFIED), cutoff)) {
+            Incident incident = incidents.findForUpdate(stale.getId()).orElse(null);
+            if (incident == null || incident.getUpdatedAt().isAfter(cutoff)) continue;
+            if (incident.getStatus() == IncidentStatus.RESOLVED) {
+                incident.state().requireTransition(IncidentStatus.VERIFIED, com.bits.itsm.incident.state.LifecycleActor.SYSTEM);
+                incident.verify();
+                record(incident, system, "AUTO_VERIFIED", "Automatically verified: no reporter response within 72 hours.", "RESOLVED");
+            }
+            if (incident.getStatus() == IncidentStatus.VERIFIED) {
+                incident.state().requireTransition(IncidentStatus.CLOSED, com.bits.itsm.incident.state.LifecycleActor.SYSTEM);
+                incident.close();
+                record(incident, system, "AUTO_CLOSED", "Automatically closed by the system.", "VERIFIED");
+                closed++;
+            }
+        }
+        return closed;
+    }
+    private void record(Incident incident, User actor, String action, String description, String previous) {
+        incident.record(actor, action, description, STUDENT_VISIBLE);
+        incidents.flush();
+        events.publish(incident.getId(), null, action, previous, incident.getStatus().name(), description);
+    }
     private View finish(Incident incident, User actor, String action, String description) {
         incident.record(actor, action, description, STUDENT_VISIBLE);
         incidents.flush();
@@ -182,8 +219,15 @@ public class IncidentService {
             case "RESOLVED" -> "IN_PROGRESS";
             case "VERIFIED", "ISSUE_STILL_EXISTS" -> "RESOLVED";
             case "CLOSED" -> "VERIFIED";
+            case "INFORMATION_REQUESTED" -> "IN_PROGRESS";
+            case "STUDENT_REPLIED" -> "AWAITING_INFO";
             default -> incident.getStatus().name();
         };
+        // Defence in depth: the state's transition table must also allow this actor (rolls back otherwise).
+        IncidentStatus from = IncidentStatus.valueOf(previous);
+        if (from != incident.getStatus()) {
+            com.bits.itsm.incident.state.IncidentLifecycle.of(from).requireTransition(incident.getStatus(), com.bits.itsm.incident.state.LifecycleActor.of(actor.getRole()));
+        }
         events.publish(incident.getId(), actor.getId(), action, previous, incident.getStatus().name(), description);
         return view(incident, actor);
     }
@@ -200,6 +244,6 @@ public class IncidentService {
                 i.getCreatedAt(), i.getUpdatedAt(), i.getAcknowledgedAt(), i.getResolvedAt(), i.getVerifiedAt(), i.getClosedAt(),
                 i.getResolutionSummary(), i.getResolutionSteps(), notes, history, f == null ? null : new FeedbackView(f.getRating(), f.getComment(), f.getCreatedAt()),
                 user.getRole() == Role.TECHNICIAN && i.isPrimary(user.getId()), student ? List.of() : i.getCollaborators().stream()
-                    .map(c -> new TeamMember(person(c.getTechnician()), c.getResponsibility())).toList(), categories.suggest(i.getTitle(), i.getDescription()), i.getCriticality(), i.getResponseDeadline(), i.getResolutionDeadline(), i.responseSla(java.time.Instant.now()), i.resolutionSla(java.time.Instant.now()));
+                    .map(c -> new TeamMember(person(c.getTechnician()), c.getResponsibility())).toList(), categories.suggest(i.getTitle(), i.getDescription()), i.getCriticality(), i.getResponseDeadline(), i.getResolutionDeadline(), i.responseSla(java.time.Instant.now()), i.resolutionSla(java.time.Instant.now()), i.isSlaPaused(), i.getSlaPausedSeconds());
     }
 }

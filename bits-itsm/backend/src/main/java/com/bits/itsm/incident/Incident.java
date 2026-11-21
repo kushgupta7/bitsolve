@@ -7,8 +7,23 @@ import com.bits.itsm.user.Student;
 import com.bits.itsm.user.Technician;
 import com.bits.itsm.user.User;
 import com.bits.itsm.user.TechnicianSkill;
+import com.bits.itsm.exception.InvalidStateTransitionException;
+import com.bits.itsm.incident.state.IncidentLifecycle;
+import com.bits.itsm.incident.state.IncidentState;
 import jakarta.persistence.*;
 
+/**
+ * Aggregate root of the domain model.
+ * <ul>
+ *   <li><b>Encapsulation</b>: every field is private; there is no public setter for status, priority or
+ *       deadlines. State changes happen only through intention-revealing methods that enforce invariants.</li>
+ *   <li><b>State pattern</b>: {@link #move(IncidentStatus)} asks the current {@link IncidentState} whether the
+ *       edge is legal, so the lifecycle rules live in one class per state.</li>
+ *   <li><b>Composition</b>: investigation notes, history and feedback are created by and live only with
+ *       their incident (cascade persist, no independent lifecycle).</li>
+ *   <li><b>Association</b>: reporter and assigned technician exist independently of the incident.</li>
+ * </ul>
+ */
 @Entity
 @Table(name = "incidents")
 public class Incident {
@@ -48,6 +63,9 @@ public class Incident {
     private Instant resolutionDeadline;
     private Integer responseTargetMinutes;
     private Integer resolutionTargetMinutes;
+    // SLA pause bookkeeping for AWAITING_INFO: when the pause began and the total paused time so far.
+    private Instant slaPausedAt;
+    @Column(nullable = false) private long slaPausedSeconds;
     @Column(length = 2000) private String resolutionSummary;
     @Column(length = 2000) private String resolutionSteps;
     @OneToMany(mappedBy = "incident", cascade = CascadeType.PERSIST) @OrderBy("createdAt ASC, id ASC")
@@ -93,10 +111,15 @@ public class Incident {
     public Instant getResponseDeadline() { return responseDeadline; }
     public Instant getResolutionDeadline() { return resolutionDeadline; }
     public SlaClock.Status responseSla(Instant now) { return responseDeadline == null ? null : SlaClock.status(responseDeadline, responseTargetMinutes, acknowledgedAt, now); }
-    public SlaClock.Status resolutionSla(Instant now) { return resolutionDeadline == null ? null : SlaClock.status(resolutionDeadline, resolutionTargetMinutes, resolvedAt, now); }
+    public SlaClock.Status resolutionSla(Instant now) {
+        if (resolutionDeadline == null) return null;
+        // While paused the clock is frozen at the moment the information request was sent.
+        Instant effectiveNow = slaPausedAt != null && slaPausedAt.isBefore(now) ? slaPausedAt : now;
+        return SlaClock.status(resolutionDeadline, resolutionTargetMinutes, resolvedAt, effectiveNow);
+    }
     public void assign(Technician technician) {
         require(IncidentStatus.CLASSIFIED);
-        if (!technician.isEnabled() || !technician.isAvailable()) throw new IllegalStateException("Technician is disabled or unavailable.");
+        if (!technician.isEnabled() || !technician.isAvailable()) throw new com.bits.itsm.exception.TechnicianUnavailableException("Technician is disabled or unavailable.");
         assignedTechnician = technician;
         move(IncidentStatus.ASSIGNED);
     }
@@ -104,12 +127,12 @@ public class Incident {
     public boolean isPrimary(Long userId) { return assignedTechnician != null && assignedTechnician.getId().equals(userId); }
     public boolean participates(Long userId) { return isPrimary(userId) || collaborators.stream().anyMatch(c -> c.getTechnician().getId().equals(userId)); }
     public void requireAssignableTeam() {
-        if (status != IncidentStatus.ASSIGNED && status != IncidentStatus.ACKNOWLEDGED && status != IncidentStatus.IN_PROGRESS) throw new IllegalStateException("Team changes require an assigned incident under investigation.");
+        if (!state().countsTowardWorkload()) throw new IllegalStateException("Team changes require an assigned incident under investigation.");
     }
     public void reassign(Technician technician) {
         requireAssignableTeam();
         if (participates(technician.getId())) throw new IllegalStateException("Technician already participates in this incident.");
-        if (!technician.isEnabled() || !technician.isAvailable()) throw new IllegalStateException("Technician is disabled or unavailable.");
+        if (!technician.isEnabled() || !technician.isAvailable()) throw new com.bits.itsm.exception.TechnicianUnavailableException("Technician is disabled or unavailable.");
         assignedTechnician = technician; updatedAt = Instant.now();
         // Reassignment preserves lifecycle progress, timestamps, notes and resolution information.
     }
@@ -132,6 +155,27 @@ public class Incident {
         };
     }
     public void start() { require(IncidentStatus.ACKNOWLEDGED); move(IncidentStatus.IN_PROGRESS); }
+
+    /** IN_PROGRESS → AWAITING_INFO: the technician needs an answer; the resolution SLA clock pauses. */
+    public void requestInformation() { requestInformation(Instant.now()); }
+    public void requestInformation(Instant now) {
+        require(IncidentStatus.IN_PROGRESS);
+        move(IncidentStatus.AWAITING_INFO, now);
+        slaPausedAt = now;
+    }
+
+    /** AWAITING_INFO → IN_PROGRESS: the reporter replied; the deadline is pushed back by the paused time. */
+    public void informationReceived() { informationReceived(Instant.now()); }
+    public void informationReceived(Instant now) {
+        require(IncidentStatus.AWAITING_INFO);
+        if (slaPausedAt != null && now.isAfter(slaPausedAt)) {
+            java.time.Duration paused = java.time.Duration.between(slaPausedAt, now);
+            slaPausedSeconds += paused.getSeconds();
+            if (resolutionDeadline != null) resolutionDeadline = resolutionDeadline.plus(paused);
+        }
+        slaPausedAt = null;
+        move(IncidentStatus.IN_PROGRESS, now);
+    }
     public void resolve(String summary, String steps) {
         require(IncidentStatus.IN_PROGRESS);
         String validSummary = text(summary, 1, 2000);
@@ -149,9 +193,18 @@ public class Incident {
     }
     public void close() { require(IncidentStatus.VERIFIED); move(IncidentStatus.CLOSED); closedAt = updatedAt; }
     public void require(IncidentStatus expected) {
-        if (status != expected) throw new IllegalStateException("This action requires " + expected + "; current status is " + status + ".");
+        if (status != expected) throw new InvalidStateTransitionException(status, expected, "This action requires " + expected + "; current status is " + status + ".");
     }
-    private void move(IncidentStatus next) { status = next; updatedAt = Instant.now(); }
+    /** Precondition for actions allowed in several states (e.g. notes while IN_PROGRESS or AWAITING_INFO). */
+    public void requireAny(IncidentStatus... allowed) {
+        for (IncidentStatus s : allowed) if (status == s) return;
+        throw new InvalidStateTransitionException(status, allowed[0], "This action requires " + java.util.Arrays.toString(allowed) + "; current status is " + status + ".");
+    }
+    /** Behaviour object for the current status (State pattern). */
+    public IncidentState state() { return IncidentLifecycle.of(status); }
+    private void move(IncidentStatus next) { move(next, Instant.now()); }
+    // Single choke point for every status change: the current state validates the edge first.
+    private void move(IncidentStatus next, Instant at) { state().requireTransition(next); status = next; updatedAt = at; }
     public void addNote(User author, String content, InvestigationNote.Visibility visibility, InvestigationNote.Kind kind) {
         notes.add(new InvestigationNote(this, author, content, visibility, kind)); updatedAt = Instant.now();
     }
@@ -184,6 +237,9 @@ public class Incident {
     public Instant getResolvedAt() { return resolvedAt; }
     public Instant getVerifiedAt() { return verifiedAt; }
     public Instant getClosedAt() { return closedAt; }
+    public Instant getSlaPausedAt() { return slaPausedAt; }
+    public long getSlaPausedSeconds() { return slaPausedSeconds; }
+    public boolean isSlaPaused() { return !state().slaClockRunning() && status == IncidentStatus.AWAITING_INFO; }
     public String getResolutionSummary() { return resolutionSummary; }
     public String getResolutionSteps() { return resolutionSteps; }
     public List<InvestigationNote> getNotes() { return List.copyOf(notes); }
