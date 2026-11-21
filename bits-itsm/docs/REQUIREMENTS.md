@@ -14,7 +14,7 @@
 | FR0 | Students self-register with institutional e-mail, student ID and a 12+ character password (can be disabled by configuration) | Done |
 | FR1 | Users sign in with institutional e-mail + password; sessions expire after 30 min idle | Done |
 | FR2 | Admin creates, edits, enables/disables users (Student/Technician/Admin) | Done |
-| FR3 | Admin manages technician skills, availability and maximum workload | Done |
+| FR3 | Admin manages technician skills, availability and maximum workload; technicians set their own status (Available / Busy / Unavailable) from their home page | Done |
 | FR4 | Admin manages IT services (label, enabled, business criticality, SLA factor) and incident categories | Done |
 | FR5 | Student reports an incident (title, description, category, service, impact, urgency, optional number of people affected) | Done |
 | FR5a | Student adds information to an open incident at any time; technician is notified | Done |

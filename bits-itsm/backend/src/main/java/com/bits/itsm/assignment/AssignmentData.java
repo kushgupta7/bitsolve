@@ -9,6 +9,7 @@ import jakarta.validation.constraints.*;
 public final class AssignmentData {
     private AssignmentData() { }
     public record Strategy(@NotNull AssignmentSettings.Mode strategy) { }
+    public record AvailabilityChange(@NotNull Technician.Availability availability) { }
     public record Profile(@NotEmpty Set<@NotNull TechnicianSkill> skills, @NotNull Technician.Availability availability, @Min(1) @Max(100) int maxWorkload) { }
     public record Transfer(@NotNull @Positive Long technicianId, @NotNull TransferRequest.Reason reason, @NotBlank @Size(max = 2000) String handoverNotes) { }
     public record Collaboration(@NotNull @Positive Long technicianId, @NotNull TechnicianSkill requiredSkill,

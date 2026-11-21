@@ -88,6 +88,11 @@ public class AssignmentService implements ApplicationRunner {
         User user = all ? actor(email, Role.ADMIN) : actor(email, Role.TECHNICIAN);
         return workloads.all().stream().filter(w -> all || w.id().equals(user.getId())).toList();
     }
+    @Transactional public WorkloadService.Workload availability(AvailabilityChange request, String email) {
+        User user = actor(email, Role.TECHNICIAN); settings.lock();
+        ((Technician) user).changeAvailability(request.availability()); users.flush();
+        return workloads.all().stream().filter(w -> w.id().equals(user.getId())).findFirst().orElseThrow();
+    }
     @Transactional public WorkloadService.Workload profile(Long id, Profile request, String email) {
         actor(email, Role.ADMIN); settings.lock();
         User user = users.findById(id).orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Technician not found."));

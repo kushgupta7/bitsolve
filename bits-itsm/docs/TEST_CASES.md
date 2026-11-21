@@ -63,6 +63,8 @@
 | TC53 | Affected-user count validated and fixed after classification | Invalid input | NEW incident | 0, 100001, then change after classify | `InvalidIncidentException`; `InvalidStateTransitionException` | Pass | `AffectedUsersAndServiceSlaTest.reporterCanStateAffectedUsersOnlyWhileNewAndWithinBounds` |
 | TC54 | Service SLA factor scales both targets | Normal | P2 policy 15/120 | factor 0.5 | 8 min / 60 min, deadline = created + 60 min | Pass | `AffectedUsersAndServiceSlaTest.serviceFactorScalesBothSlaTargets` |
 | TC55 | Factor bounds and 1-minute floor | Boundary | – | 0.1, 5.0; P1 1/2 min × 0.25 | rejected; response stays 1 min | Pass | `…serviceFactorOutsideRangeIsRejected`, `…defaultFactorKeepsPolicyTargetsAndTinyTargetsStayAtLeastOneMinute` |
+| TC56 | Technician sets own availability | Normal | technician03 AVAILABLE | PUT BUSY, then AVAILABLE | stored; BUSY not eligible for new work; student gets 403 | Pass | `PostgresAssignmentTests.technicianSetsOwnAvailabilityAndOnlyAvailableTechniciansAreEligible` |
+| TC57 | Availability rules on the entity | Boundary | new technician | BUSY, UNAVAILABLE, null | only AVAILABLE is eligible; null rejected, status unchanged | Pass | `TechnicianAvailabilityTest` |
 
 Postgres* tests run only with `BITSOLVE_DB_TESTS=true` against a disposable PostgreSQL database.
 

@@ -187,4 +187,14 @@ class PostgresAssignmentTests {
         assertEquals(2,jdbc.queryForObject("select count(*) from technician_skills where technician_id=?",Integer.class,id));
         assertTrue(hash.equals(jdbc.queryForObject("select password_hash from app_users where id=?",String.class,id)));
     }
+    @Test void technicianSetsOwnAvailabilityAndOnlyAvailableTechniciansAreEligible() {
+        long id=tech("technician03");
+        var busy=service.availability(new AssignmentData.AvailabilityChange(Technician.Availability.BUSY),email("technician03"));
+        assertEquals(Technician.Availability.BUSY,busy.availability());
+        assertEquals("BUSY",jdbc.queryForObject("select availability from app_users where id=?",String.class,id));
+        assertFalse(service.workload(email("admin01"),true).stream().filter(w->w.id().equals(id)).findFirst().orElseThrow().availability()==Technician.Availability.AVAILABLE);
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->service.availability(new AssignmentData.AvailabilityChange(Technician.Availability.BUSY),email("student01")));
+        service.availability(new AssignmentData.AvailabilityChange(Technician.Availability.AVAILABLE),email("technician03"));
+        assertEquals("AVAILABLE",jdbc.queryForObject("select availability from app_users where id=?",String.class,id));
+    }
 }

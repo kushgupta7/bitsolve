@@ -16,6 +16,7 @@ public class AssignmentController {
     @GetMapping("/admin/assignment-strategy") public Strategy strategy(Authentication auth) { return service.strategy(auth.getName()); }
     @PutMapping("/admin/assignment-strategy") public Strategy strategy(@Valid @RequestBody Strategy request, Authentication auth) { return service.selectStrategy(request, auth.getName()); }
     @GetMapping("/technician/workload") public WorkloadService.Workload workload(Authentication auth) { return service.workload(auth.getName(), false).getFirst(); }
+    @PutMapping("/technician/availability") public WorkloadService.Workload availability(@Valid @RequestBody AvailabilityChange request, Authentication auth) { return service.availability(request, auth.getName()); }
     @GetMapping("/admin/technicians/workloads") public List<WorkloadService.Workload> workloads(Authentication auth) { return service.workload(auth.getName(), true); }
     @PutMapping("/admin/technicians/{id}/assignment-profile") public WorkloadService.Workload profile(@PathVariable Long id, @Valid @RequestBody Profile request, Authentication auth) { return service.profile(id, request, auth.getName()); }
     @GetMapping("/incidents/{id}/eligible-technicians") public List<WorkloadService.Workload> eligible(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean collaboration, @RequestParam(required = false) TechnicianSkill skill, Authentication auth) { return service.eligibleList(id, collaboration, skill, auth.getName()); }

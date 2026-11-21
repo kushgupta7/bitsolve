@@ -371,3 +371,14 @@ button:focus-visible { outline: 3px solid #389ab8; outline-offset: 3px; }
 .risk-list .admin-badge { padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .optional-label { font-weight: 400; color: #68788a; }
 .add-info-heading { margin: 18px 0 4px; font-size: 15px; }
+
+/* Technician availability status */
+.availability-toggle { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.availability-option { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 2px; align-items: center; text-align: left; padding: 12px 14px; border: 1px solid #d5e0ea; border-radius: 10px; background: #fff; color: inherit; cursor: pointer; font: inherit; }
+.availability-option small { grid-column: 2; color: #59728a; font-size: 12px; }
+.availability-option:hover:not(:disabled) { border-color: #19536b; }
+.availability-option.is-selected { border-color: #19536b; box-shadow: 0 0 0 2px rgba(25, 83, 107, .18); background: #f3f8fb; }
+.availability-option:disabled { cursor: progress; opacity: .7; }
+.availability-dot { width: 10px; height: 10px; border-radius: 50%; background: #2e7d4f; }
+.availability-busy .availability-dot { background: #c27c0e; }
+.availability-unavailable .availability-dot { background: #9c3843; }

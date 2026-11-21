@@ -33,6 +33,11 @@ public class Technician extends User {
         if (skills == null || skills.isEmpty() || skills.stream().anyMatch(java.util.Objects::isNull) || availability == null || maxWorkload < 1 || maxWorkload > 100) throw new IllegalArgumentException("Provide skills, availability and a capacity of 1–100.");
         this.skills.clear(); this.skills.addAll(skills); this.availability = availability; this.maxWorkload = maxWorkload;
     }
+    /** Self-service status: only AVAILABLE technicians receive new assignments; BUSY and UNAVAILABLE keep current work. */
+    public void changeAvailability(Availability availability) {
+        if (availability == null) throw new IllegalArgumentException("Choose Available, Busy or Unavailable.");
+        this.availability = availability;
+    }
     @Override
     public Role getRole() { return Role.TECHNICIAN; }
 }
