@@ -130,10 +130,10 @@ public class DemoIncidentSeeder implements ApplicationRunner {
                 actor, ts(at), incident, description, action);
     }
 
-    /** Mirrors the default multiplicative strategy (Low/Medium/High = 1/2/3, impact × urgency × criticality). */
+    /** Mirrors the default multiplicative strategy (Low/Medium/High = 1/2/3, impact × urgency × criticality, P1 ≥ 18, P2 ≥ 12, P3 ≥ 4); the seed uses impact as the criticality proxy. */
     static String priority(String impact, String urgency) {
         int score = level(impact) * level(urgency) * level(impact);
-        return score >= 18 ? "P1" : score >= 8 ? "P2" : score >= 3 ? "P3" : "P4";
+        return score >= 18 ? "P1" : score >= 12 ? "P2" : score >= 4 ? "P3" : "P4";
     }
 
     private static int level(String l) { return switch (l) { case "HIGH" -> 3; case "MEDIUM" -> 2; default -> 1; }; }
