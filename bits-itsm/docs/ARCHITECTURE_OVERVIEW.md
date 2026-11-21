@@ -1,4 +1,6 @@
-## System Architecture
+# System architecture: team overview
+
+Short overview from the team. The detailed version with diagrams is [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **BITSolve — Intelligent IT Service Management & Incident Resolution System**
 
