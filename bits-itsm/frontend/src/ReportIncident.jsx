@@ -127,7 +127,7 @@ export default function ReportIncident({ onCancel, live = false }) {
         </div>
 
         <div className="report-row">{dropdowns.map(renderDropdown)}</div>
-        {live && options && (!options.services.length || !options.categories.length) && <p className="report-error" role="alert">No {options.services.length ? 'incident categories' : 'IT services'} are available for reporting yet. An administrator must enable them (Admin › Services, with a business criticality) before incidents can be reported.</p>}
+        {live && options && (!options.services.length || !options.categories.length) && <p className="report-error" role="alert">No {options.services.length ? 'incident categories' : 'IT services'} are available for reporting yet. An administrator must enable them (Admin › IT Services, with a business criticality) before incidents can be reported.</p>}
 
         <div className="report-field">
           <label htmlFor="incident-description">Detailed Description</label>
