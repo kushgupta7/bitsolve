@@ -64,8 +64,15 @@ public class AssignmentService implements ApplicationRunner {
     private Technician eligible(Incident incident, Long id, TechnicianSkill required) {
         User selected = users.findById(id).orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Technician not found."));
         if (!(selected instanceof Technician)) throw new IllegalArgumentException("Select a technician account.");
-        return workloads.candidates(incident).stream().filter(c -> c.technician().getId().equals(id) && c.eligible(required))
-                .map(AssignmentStrategy.Candidate::technician).findFirst().orElseThrow(() -> new IllegalStateException("Technician is already on this incident, disabled, busy, unavailable, unqualified or at capacity."));
+        AssignmentStrategy.Candidate candidate = workloads.candidates(incident).stream().filter(c -> c.technician().getId().equals(id)).findFirst()
+                .orElseThrow(() -> new IllegalStateException("Technician is already on this incident."));
+        if (candidate.eligible(required)) return candidate.technician();
+        Technician t = candidate.technician();
+        boolean otherwiseEligible = t.isEnabled() && t.isAvailable() && (required == null || t.getSkills().contains(required));
+        if (otherwiseEligible && candidate.workload() >= t.getMaxWorkload()) {
+            throw new com.bits.itsm.exception.WorkloadExceededException(t.getName() + " is at maximum workload (" + candidate.workload() + "/" + t.getMaxWorkload() + ").");
+        }
+        throw new IllegalStateException("Technician is already on this incident, disabled, busy, unavailable, unqualified or at capacity.");
     }
     /** Intelligent feature D: top-3 technician recommendations with explanations (admin only). */
     public List<SmartRecommendation.Recommendation> recommendations(Long id, String email) {

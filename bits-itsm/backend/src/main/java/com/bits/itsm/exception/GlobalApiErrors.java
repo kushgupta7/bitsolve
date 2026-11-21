@@ -16,6 +16,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalApiErrors {
     private static final Logger log = LoggerFactory.getLogger(GlobalApiErrors.class);
 
+    /** Database failure: wrapped so driver/SQL details never reach the client. */
+    @ExceptionHandler(org.springframework.dao.DataAccessException.class)
+    ResponseEntity<ApiError> database(org.springframework.dao.DataAccessException error, HttpServletRequest request) {
+        return domain(new PersistenceException("Database operation failed.", error), request);
+    }
+
     @ExceptionHandler(BitsolveException.class)
     ResponseEntity<ApiError> domain(BitsolveException error, HttpServletRequest request) {
         if (error.httpStatus() >= 500) log.error("{} on {}", error.code(), request.getRequestURI(), error);

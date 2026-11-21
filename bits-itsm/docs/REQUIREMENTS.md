@@ -11,6 +11,7 @@
 ## Functional requirements
 | ID | Requirement | Status |
 |---|---|---|
+| FR0 | Students self-register with institutional e-mail, student ID and a 12+ character password (can be disabled by configuration) | Done |
 | FR1 | Users sign in with institutional e-mail + password; sessions expire after 30 min idle | Done |
 | FR2 | Admin creates, edits, enables/disables users (Student/Technician/Admin) | Done |
 | FR3 | Admin manages technician skills, availability and maximum workload | Done |
@@ -34,7 +35,7 @@
 | FR21 | Channels: in-app (persisted, read state), e-mail (reporter lifecycle events, outbox with retry), SMS (simulated, urgent events) | Done |
 | FR22 | Immutable audit trail of every action with actor, previous/new state; admin can filter | Done |
 | FR23 | Search/filter by ID/keyword, status, category, priority, service, technician, date range, SLA status | Done (API: all 9; UI: main filters) |
-| FR24 | Dashboards: overview KPIs, trend, per-service, category, workload, SLA compliance, MTTA/MTTR, feedback | Done |
+| FR24 | Dashboards: overview KPIs, trend, per-service, category, workload, SLA compliance, MTTA/MTTR, feedback; role-specific home pages (admin live overview, technician "work on these first", student welcome) | Done |
 | FR25 | Export incidents to CSV; print-to-PDF of the analytics page | Done |
 | FR26 | SLA risk prediction per open incident (admin all; technician own) | Done |
 
@@ -47,7 +48,7 @@
 | NFR4 Performance | Typical API calls < 300 ms at campus scale (≤ 10k incidents); analytics computed on request |
 | NFR5 Usability | Role-specific navigation; friendly error messages; one automatic retry for reads on network failure; mobile layout |
 | NFR6 Maintainability | Layered architecture, SOLID, patterns documented; new strategy/channel/state = one class |
-| NFR7 Testability | Pure domain/intelligence classes testable without Spring; ≥ 30 automated tests (≈ 214) |
+| NFR7 Testability | Pure domain/intelligence classes testable without Spring; ≥ 30 automated tests (≈ 222) |
 | NFR8 Portability | Docker image; docker-compose for PostgreSQL + MailHog; environment-variable configuration |
 | NFR9 Auditability | Every state change and configuration change audited with actor and timestamp |
 

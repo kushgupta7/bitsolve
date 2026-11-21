@@ -7,6 +7,7 @@ import com.bits.itsm.user.Student;
 import com.bits.itsm.user.Technician;
 import com.bits.itsm.user.User;
 import com.bits.itsm.user.TechnicianSkill;
+import com.bits.itsm.exception.InvalidIncidentException;
 import com.bits.itsm.exception.InvalidStateTransitionException;
 import com.bits.itsm.incident.state.IncidentLifecycle;
 import com.bits.itsm.incident.state.IncidentState;
@@ -79,13 +80,13 @@ public class Incident {
     protected Incident() { }
     public void editReport(String title, String description) {
         require(IncidentStatus.NEW);
-        this.title = text(title, 1, 100);
-        this.description = text(description, 20, 2000);
+        this.title = field("Title", title, 1, 100);
+        this.description = field("Description", description, 20, 2000);
         updatedAt = Instant.now();
     }
     public Incident(String title, String description, Student reporter, Category category, ItService service, Level impact, Level urgency) {
-        this.title = text(title, 1, 100);
-        this.description = text(description, 20, 2000);
+        this.title = field("Title", title, 1, 100);
+        this.description = field("Description", description, 20, 2000);
         this.reporter = java.util.Objects.requireNonNull(reporter);
         this.category = java.util.Objects.requireNonNull(category);
         this.affectedService = java.util.Objects.requireNonNull(service);
@@ -178,8 +179,8 @@ public class Incident {
     }
     public void resolve(String summary, String steps) {
         require(IncidentStatus.IN_PROGRESS);
-        String validSummary = text(summary, 1, 2000);
-        String validSteps = text(steps, 1, 2000);
+        String validSummary = field("Resolution summary", summary, 1, 2000);
+        String validSteps = field("Resolution steps", steps, 1, 2000);
         resolutionSummary = validSummary;
         resolutionSteps = validSteps;
         move(IncidentStatus.RESOLVED); resolvedAt = updatedAt;
@@ -215,6 +216,14 @@ public class Incident {
         if (status != IncidentStatus.VERIFIED && status != IncidentStatus.CLOSED) throw new IllegalStateException("Verify the resolution before submitting feedback.");
         if (feedback != null) throw new IllegalStateException("Feedback has already been submitted.");
         feedback = new IncidentFeedback(this, student, rating, comment); updatedAt = Instant.now();
+    }
+    /** Validates an incident field; a violation is an "invalid incident" in the brief's terms. */
+    private static String field(String name, String value, int min, int max) {
+        try {
+            return text(value, min, max);
+        } catch (IllegalArgumentException e) {
+            throw new InvalidIncidentException(name + " must contain " + min + "–" + max + " characters.");
+        }
     }
     static String text(String value, int min, int max) {
         if (value == null || value.trim().length() < min || value.trim().length() > max) throw new IllegalArgumentException("Text must contain " + min + "–" + max + " characters.");

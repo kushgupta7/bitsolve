@@ -40,7 +40,7 @@ When a campus IT service fails (Wi-Fi in a hostel block, the ERP student portal 
 * **Analytics**: KPIs, trends, service analysis, workload, CSV/PDF export.
 
 ### Assumptions
-* All users have institutional `@hyderabad.bits-pilani.ac.in` accounts created by an administrator (no self-registration, to prevent abuse).
+* All users have institutional `@hyderabad.bits-pilani.ac.in` e-mail addresses. Students may self-register (student role only); technician and administrator accounts are created by an administrator.
 * Administrators also perform the team-lead role (approvals, reassignment).
 * One campus deployment; a single application instance with PostgreSQL is sufficient for the expected volume (hundreds of incidents per month).
 * Students rate impact and urgency on a three-level scale; business criticality is owned by IT per service.
@@ -61,6 +61,7 @@ When a campus IT service fails (Wi-Fi in a hostel block, the ERP student portal 
 ### Functional requirements
 | ID | Requirement | Status |
 |---|---|---|
+| FR0 | Students self-register with institutional e-mail, student ID and a 12+ character password (can be disabled by configuration) | Done |
 | FR1 | Users sign in with institutional e-mail + password; sessions expire after 30 min idle | Done |
 | FR2 | Admin creates, edits, enables/disables users (Student/Technician/Admin) | Done |
 | FR3 | Admin manages technician skills, availability and maximum workload | Done |
@@ -84,7 +85,7 @@ When a campus IT service fails (Wi-Fi in a hostel block, the ERP student portal 
 | FR21 | Channels: in-app (persisted, read state), e-mail (reporter lifecycle events, outbox with retry), SMS (simulated, urgent events) | Done |
 | FR22 | Immutable audit trail of every action with actor, previous/new state; admin can filter | Done |
 | FR23 | Search/filter by ID/keyword, status, category, priority, service, technician, date range, SLA status | Done (API: all 9; UI: main filters) |
-| FR24 | Dashboards: overview KPIs, trend, per-service, category, workload, SLA compliance, MTTA/MTTR, feedback | Done |
+| FR24 | Dashboards: overview KPIs, trend, per-service, category, workload, SLA compliance, MTTA/MTTR, feedback; role-specific home pages (admin live overview, technician "work on these first", student welcome) | Done |
 | FR25 | Export incidents to CSV; print-to-PDF of the analytics page | Done |
 | FR26 | SLA risk prediction per open incident (admin all; technician own) | Done |
 
@@ -97,7 +98,7 @@ When a campus IT service fails (Wi-Fi in a hostel block, the ERP student portal 
 | NFR4 Performance | Typical API calls < 300 ms at campus scale (≤ 10k incidents); analytics computed on request |
 | NFR5 Usability | Role-specific navigation; friendly error messages; one automatic retry for reads on network failure; mobile layout |
 | NFR6 Maintainability | Layered architecture, SOLID, patterns documented; new strategy/channel/state = one class |
-| NFR7 Testability | Pure domain/intelligence classes testable without Spring; ≥ 30 automated tests (≈ 214) |
+| NFR7 Testability | Pure domain/intelligence classes testable without Spring; ≥ 30 automated tests (≈ 222) |
 | NFR8 Portability | Docker image; docker-compose for PostgreSQL + MailHog; environment-variable configuration |
 | NFR9 Auditability | Every state change and configuration change audited with actor and timestamp |
 
@@ -136,9 +137,19 @@ When a campus IT service fails (Wi-Fi in a hostel block, the ERP student portal 
 2. **Background path**: `SlaMonitor`, `CorrelationMonitor`, `AutoCloseScheduler` read immutable `IncidentSnapshot`s and claim each event key in `scheduled_events` before publishing, so restarts never repeat alerts.
 3. **E-mail**: `EmailChannel` queues reporter e-mails in the same transaction; a separate worker sends committed rows with bounded retries.
 
-### Running application: Insights & Analytics page
+### Running application (screenshots rendered with sample data)
 
-![Insights page (rendered with sample data)](images/insights-mock.png)
+Each role has its own colour, badge, menu and home page (brief: "difference in GUI for different users").
+
+![Student portal (teal)](images/portal-student.png)
+
+![Technician portal (indigo)](images/portal-technician.png)
+
+![Administrator portal (navy/amber): live overview](images/portal-admin.png)
+
+![Student self-registration](images/portal-register.png)
+
+![Insights & Analytics page](images/insights-mock.png)
 
 # 4. UML Diagrams
 
@@ -332,7 +343,7 @@ Paths are relative to `backend/src/main/java/com/bits/itsm/`.
 
 * **`NotificationFactory.create(event, recipient)`** builds the right title and wording per `EventType`.
 * **`NotificationChannelFactory.channelsFor(notification)`** returns the channels whose `accepts()` preference matches. For example, SMS is used only for SLA breaches, escalations and major incidents (configurable `itsm.sms.events`).
-* **Users**: the concrete subclass (`Student`, `Technician`, `Administrator`) is chosen by the admin "create user" flow and JPA's single-table discriminator. Clients cannot set a role directly (`User.getRole()` is abstract).
+* **`UserFactory.create(role, …)`** is the single place that instantiates `Student`, `Technician` or `Administrator`; both admin account creation and student self-registration use it. Clients cannot set a role directly (`User.getRole()` is abstract).
 
 ### 6. Adapter: SMS gateway (and the persistence snapshot)
 
@@ -370,7 +381,24 @@ Spring Data JPA interfaces (`IncidentRepository`, `UserRepository`, `SlaPolicyRe
 | Composition | `Incident` owns notes, history, feedback, collaborators (cascade persist, no independent life); `PriorityBasedAssignment` contains a `LoadBasedAssignment` |
 | Association | `Incident` → reporter `Student`, → assigned `Technician` |
 | Aggregation | Audit entries reference incidents by id and outlive them; `EventBus` aggregates observers |
-| Exception handling | Custom hierarchy (`exception/`), checked `SmsDeliveryException` at the external boundary, `GlobalApiErrors` / `IncidentApiErrors` produce `{timestamp, status, code, message, path}` |
+| Exception handling | Custom hierarchy (`exception/`), checked `SmsDeliveryException` at the external boundary, `GlobalApiErrors` / `IncidentApiErrors` produce `{timestamp, status, code, message, path}`. See the table below. |
+
+### Exception handling: the brief's twelve situations
+
+| Brief situation | Exception (HTTP) | Thrown where |
+|---|---|---|
+| Invalid login | `InvalidLoginException` (401) | `AuthController` on any authentication failure (same message for wrong, unknown, disabled) |
+| Unauthorized operation | `UnauthorizedOperationException` (403) | State transition by the wrong role; insights for the wrong role; registration disabled |
+| Invalid incident | `InvalidIncidentException` (400) | `Incident` title/description/resolution length rules |
+| Invalid state transition | `InvalidStateTransitionException` (409) | Every `Incident` status change via `IncidentState` |
+| Technician unavailable | `TechnicianUnavailableException` (409) | `Incident.assign/reassign`; automatic assignment finds nobody |
+| Workload exceeded | `WorkloadExceededException` (409) | Manual assignment / transfer to a technician at capacity |
+| Service not found | `ServiceNotFoundException` (404) | `CatalogService.get` for an unknown IT service |
+| Missing SLA configuration | `MissingSlaConfigurationException` (409) | `SlaPolicies.capture` at classification |
+| Duplicate incident | `DuplicateIncidentException` (409) | Same report resubmitted (idempotency key); similar reports raise a *warning* event instead |
+| Database failure | `PersistenceException` (500, generic message) | `GlobalApiErrors` wraps any Spring `DataAccessException` |
+| Network failure | `ExternalServiceException` (502) + frontend retry | SMS adapter; `api.js` retries reads once and shows a friendly message |
+| Invalid user input | `ValidationException` (400) + Bean Validation | Search dates, registration rules, DTO constraints |
 | Collections | `EnumMap` (state transition tables, strategy registry, per-service correlation), `EnumSet` (actors per edge, SMS event preferences), `ConcurrentHashMap` + `AtomicInteger` (round-robin cursors), `ConcurrentLinkedDeque` (bounded SMS history), `LinkedHashMap` (30-day trend in calendar order, ordered recipients), `TreeMap` (sorted chart categories) |
 
 # 8. Priority Algorithm
@@ -474,6 +502,8 @@ If no policy exists for a priority, classification fails with `MissingSlaConfigu
 | S12 | CSV/spreadsheet formula injection in exports | Cells starting `= + - @` are prefixed with `'` and all cells are quoted | `InsightsService.cell`, `CsvExportTest` |
 | S13 | Secrets in source control | DB, SMTP and bootstrap credentials only via environment variables; demo seeding requires the `dev` profile **and** an explicit flag **and** a password variable | `application.properties`, `DemoUserSeeder` |
 | S14 | Lost/duplicated background actions after restart | SLA warnings, breaches, escalations and major-incident alerts are claimed in `scheduled_events` with a unique key before publishing | `ScheduledEvents.publishOnce` |
+| S16 | Abuse of self-registration | Only STUDENT accounts; institutional e-mail only; 12–72 byte passwords that may not contain the e-mail name; BCrypt; audited as `USER_REGISTERED`; can be disabled. Trade-off: "account already exists" reveals that an e-mail is registered (sign-up enumeration), which is acceptable for campus e-mail addresses that are public anyway | `RegistrationController` |
+| S17 | Double submission / replay of a report | One-time `Idempotency-Key` per report form; reuse → `DuplicateIncidentException` | `IncidentService.create` |
 | S15 | Notification spam by SMS | SMS restricted to urgent event types; delivery failures never roll back business actions | `SmsChannel` |
 
 ### Deliberate design choice: sessions instead of JWT
@@ -492,10 +522,10 @@ The original prompt suggested stateless JWT. The team chose **server-side sessio
 # 10. Testing
 
 
-**Automated suite:** the team's suite (165 backend tests, last full run 16 Nov 2026 on PostgreSQL) plus **49 new unit tests** added in the final stage (state machine, strategies, intelligence, SMS adapter, exports), giving about 214 automated tests. Run `./mvnw verify` for unit + MockMvc tests and `BITSOLVE_DB_TESTS=true ./mvnw verify` to add the PostgreSQL integration tests. Frontend: `npm test` (API client).
+**Automated suite:** the team's suite (165 backend tests, last full run 16 Nov 2026 on PostgreSQL) plus **57 new unit tests** added in the final stage (state machine, strategies, intelligence, SMS adapter, exports), giving about 222 automated tests. Run `./mvnw verify` for unit + MockMvc tests and `BITSOLVE_DB_TESTS=true ./mvnw verify` to add the PostgreSQL integration tests. Frontend: `npm test` (API client).
 
 "Actual" column:
-* **Pass**: re-run after the final changes (121 plain unit tests: 72 existing + 49 new).
+* **Pass**: re-run after the final changes (129 plain unit tests: 72 existing + 57 new).
 * **Re-run before submission**: Spring context / MockMvc / PostgreSQL tests that passed in the team's 16 Nov run but need a fresh `./mvnw verify` on a machine with Maven access.
 
 | ID | Description | Category | Preconditions | Input | Expected result | Actual | Automated test |
@@ -545,6 +575,12 @@ The original prompt suggested stateless JWT. The team chose **server-side sessio
 | TC43 | Concurrent assignments cannot exceed capacity | Boundary / concurrency | tech with 1 free slot | two parallel assigns | exactly one succeeds | Re-run before submission | `PostgresAssignmentTests.concurrentAssignmentsCannotConsumeTheSameLastSlot` |
 | TC44 | Migrations preserve data V1→V7 | Persistence | legacy DB | Flyway upgrade | rows and captured deadlines unchanged | Re-run before submission | `PostgresMigrationTests` |
 | TC45 | API client: 401 expires session, network failure message | Frontend | – | mocked fetch | session-expired event; friendly message | Pass | `frontend/src/api.test.js` |
+| TC46 | All 12 brief error situations have distinct codes and statuses | Exception | – | construct each | 401/403/400/409/409/409/404/409/409/500/502/400, 12 distinct codes | Pass | `ExceptionHandlingTest.everyBriefSituationHasAStableCodeAndHttpStatus` |
+| TC47 | Database failure is wrapped without leaking SQL | Exception / security | – | `DataAccessException("…constraint users_email")` | 500 `PERSISTENCE_FAILURE`, message has no SQL detail | Pass | `ExceptionHandlingTest.databaseFailuresAreWrappedWithoutLeakingDetails` |
+| TC48 | Invalid incident text names the field | Invalid input | – | description "too short" | `InvalidIncidentException` "Description must contain 20–2000 characters." | Pass | `ExceptionHandlingTest.invalidIncidentFieldsRaiseInvalidIncidentWithTheFieldName` |
+| TC49 | Student registration validation | Invalid input / security | – | gmail address, 11-char password, bad ID, password containing e-mail name | each rejected with `ValidationException`; valid input accepted | Pass | `RegistrationRulesTest.rejectsNonInstitutionalEmailShortPasswordBadIdAndPasswordContainingEmailName`, `…acceptsAValidStudentRegistration` |
+| TC50 | Registration password boundary | Boundary | – | 11, 12, 73 characters | reject, accept, reject | Pass | `RegistrationRulesTest.passwordBoundaryIsTwelveCharactersAndSeventyTwoBytes` |
+| TC51 | UserFactory builds the right subtype | Normal | – | each role | Student / Technician / Administrator; missing student ID rejected | Pass | `RegistrationRulesTest.factoryCreatesTheSubtypeForEachRole` |
 
 Postgres* tests run only with `BITSOLVE_DB_TESTS=true` against a disposable PostgreSQL database.
 
@@ -563,7 +599,7 @@ Where the team's implementation differs from the original build prompt, or the b
 | D2 | **Java 25 + Spring Boot 4.1** (prompt said Java 21 / Boot 3) | Latest LTS-track toolchain when the project started; Spring Boot 4 runs on Java 17+, so nothing in the design depends on 25-only features. |
 | D3 | **React (JavaScript) + plain CSS** instead of TypeScript + Tailwind | The UI was already built and tested in JS; rewriting it a day before the deadline would add risk without changing marks for OOP design. Recharts was added for analytics. |
 | D4 | **React served from the Spring Boot JAR** (one container) | One origin means no CORS and one deployable for Railway; docker-compose adds PostgreSQL and MailHog around it. |
-| D5 | **Role "STUDENT" instead of "EMPLOYEE"** | The deployment is BITS Pilani Hyderabad campus IT; reporters are students. Institutional e-mail (`@hyderabad.bits-pilani.ac.in`) is enforced. |
+| D5 | **Role "STUDENT" instead of "EMPLOYEE"; self-registration for students only** | The deployment is BITS Pilani Hyderabad campus IT; reporters are students. Institutional e-mail is enforced. Students can register themselves (brief: "Register/login"); staff accounts carry privileges, so only administrators create them. `bitsolve.registration.enabled=false` turns sign-up off. The user signs in after registering so session/CSRF rotation stays in one place. |
 | D6 | **No separate TEAM_LEAD account type** | Team-lead duties (reassignment, approving transfers/collaboration) are performed by administrators. The escalation chain still names Team Lead → System Administrator → IT Manager as levels, and escalation notifications go to administrators. A `TeamLead extends Technician` subtype is the documented extension point. |
 | D7 | **Impact/urgency: three levels** (not 1–4) and **no affected-users multiplier** | See PRIORITY_ALGORITHM.md. Four admin-switchable strategies replace the single weighted formula. |
 | D8 | **Categories and services as admin-editable catalog rows, backed by Java enums** | Admins can rename, enable/disable and set criticality without code changes; enums keep compile-time safety for skill mapping. Adding a brand-new code still needs a small code change (a documented trade-off). |
@@ -577,6 +613,8 @@ Where the team's implementation differs from the original build prompt, or the b
 | D16 | **Demo mode via SLA policy minutes and `itsm.*` properties** instead of a UI button | Admins can set P1 to 1 min / 3 min under *SLA Policies* (persisted, audited); the `dev` profile shortens the escalation step to 1 min. Existing incidents keep their captured deadlines, so set policies **before** creating demo incidents. |
 | D17 | **Insights endpoints are read-only and computed on request** | Analytics, SLA risk and correlation are cheap at campus scale; caching/materialised views are the scaling path (TECH_STACK.md §9). |
 | D18 | **Development-only historical seed** | 60 incidents over 30 days only when the incidents table is empty, the `dev` profile is active and seeding is explicitly enabled, so it can never touch real data. |
+| D20 | **Duplicate incident = double-submission guard** | Similar reports from different students are legitimate and only produce a duplicate *warning*; a report re-sent with the same one-time `Idempotency-Key` (double click, retry) is rejected with `DuplicateIncidentException` (409). Keys are remembered in memory for 10 minutes. |
+| D21 | **Distinct look per portal** | The brief requires a different GUI per user type: Student = teal, Technician = indigo, Administrator = navy/amber, each with its own role badge, sidebar icons and home page. |
 | D19 | **Single-instance in-memory state** (round-robin cursor, SMS outbox list) | Acceptable for one campus server; documented as needing Redis in a multi-instance deployment. |
 
 # 12. Team
@@ -608,13 +646,14 @@ Where the team's implementation differs from the original build prompt, or the b
 ### 0:00 – 2:00 · Introductions and problem (all members, ~30 s each)
 Each member: name, role, the module they own (see TEAM.md). [NAME1] states the problem in one sentence and shows the architecture diagram (`docs/diagrams/architecture.png`).
 
-### 2:00 – 6:00 · Workflow 1: report → auto-categorise + prioritise → assign → notify ([NAME1], [NAME3])
-1. **student01** → *Report Incident*: "Wi-Fi down in library reading room", description "Wireless keeps disconnecting on the 2nd floor, nobody can connect", service *Campus Wi-Fi*, impact HIGH, urgency HIGH. Submit.
-2. Point out the incident status **New** and the student's in-app notification.
-3. **admin01** → *All Incidents* → open it. Show the **suggested category** (Network) with its explanation and the **related incidents** panel.
-4. *Classify*: show priority **P1** and captured deadlines. [NAME3] explains the multiplicative strategy, 3×3×3 = 27 ≥ 18 (PRIORITY_ALGORITHM.md), and that the strategy can be switched at runtime under *Assignment Strategies*.
-5. Show **Smart technician recommendation**: top 3 with reasons. Then *Assignment Strategies* → select **Smart Recommendation**, back to the incident → **Automatically Assign**.
-6. Show notifications: technician bell, student timeline, MailHog e-mail "incident received", audit log entries (*Audit Logs*).
+### 2:00 – 6:00 · Workflow 1 (note the three portals' different colours and home pages: teal student, indigo technician, navy/amber admin): report → auto-categorise + prioritise → assign → notify ([NAME1], [NAME3])
+1. On the login page click **Create an account** and register a new student (institutional e-mail, student ID, 12+ character password); show that a Gmail address is rejected. Sign in as the new student (or student01).
+2. **student01** → *Report Incident*: "Wi-Fi down in library reading room", description "Wireless keeps disconnecting on the 2nd floor, nobody can connect", service *Campus Wi-Fi*, impact HIGH, urgency HIGH. Submit.
+3. Point out the incident status **New** and the student's in-app notification.
+4. **admin01** → *All Incidents* → open it. Show the **suggested category** (Network) with its explanation and the **related incidents** panel.
+5. *Classify*: show priority **P1** and captured deadlines. [NAME3] explains the multiplicative strategy, 3×3×3 = 27 ≥ 18 (PRIORITY_ALGORITHM.md), and that the strategy can be switched at runtime under *Assignment Strategies*.
+6. Show **Smart technician recommendation**: top 3 with reasons. Then *Assignment Strategies* → select **Smart Recommendation**, back to the incident → **Automatically Assign**.
+7. Show notifications: technician bell, student timeline, MailHog e-mail "incident received", audit log entries (*Audit Logs*).
 
 ### 6:00 – 11:00 · Workflow 2: investigate → info request (SLA paused) → resolve → verify → feedback → close ([NAME2], [NAME4])
 1. **technician04** → *Acknowledge* (response SLA met) → *Start Investigation*.
@@ -662,9 +701,10 @@ The team's code (session auth, three portals, four priority strategies, two assi
 | JUnit 5, Mockito, MockMvc, JaCoCo | ✅ (JaCoCo via `-Pcoverage`) | `backend/src/test`, `pom.xml` |
 | Dockerfile, docker-compose (Postgres + app + MailHog), GitHub Actions | ✅ (single app image serves UI, D4) | `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml` |
 | Layered architecture, controllers without logic, DTOs | ✅ | ARCHITECTURE.md |
-| ≥3 roles with different UI | ✅ Student / Technician / Admin | `pages/*` |
+| ≥3 roles with different UI | ✅ Student / Technician / Admin, distinct colour, badge, icons and home page each (D21) | `pages/*`, `HomePanels.jsx` |
+| Register / login | ✅ students self-register; staff created by admin (D5) | `RegistrationController`, `Register.jsx` |
 | TEAM_LEAD role | 🟡 performed by admins; level exists in escalation (D6) | – |
-| User inheritance, factory for subtype | ✅ | `user/` |
+| User inheritance, factory for subtype | ✅ `UserFactory` | `user/` |
 | Incident fields incl. INC id, SLA, notes, resolution, feedback, history | ✅ (`INC-1001` label) | `Incident`, `IncidentLabel` |
 | Impact/urgency 1–4, affected users count | 🟡 three levels, no user count (D7) | PRIORITY_ALGORITHM.md |
 | Admin-configurable categories/services with criticality | ✅ (rename/enable/criticality; new codes need code, D8) | `CatalogService` |
@@ -693,19 +733,19 @@ The team's code (session auth, three portals, four priority strategies, two assi
 | F Auto-categorisation | ✅ category (keyword rules); service suggestion ❌ | `CategorySuggester` |
 | G Suggested resolution | ✅ | `ResolutionSuggester` |
 | Intelligence behind interfaces; optional LLM adapter | 🟡 `SimilarityModel` interface; no LLM adapter (D14) | – |
-| Custom exception hierarchy + consistent JSON error | ✅ | `exception/` |
+| Custom exception hierarchy + consistent JSON error | ✅ all 12 brief situations thrown in real code paths (DESIGN_PATTERNS.md) | `exception/` |
 | Frontend friendly errors + network retry | ✅ one retry for reads | `api.js` |
 | Bean Validation, no secrets in code | ✅ | DTO records, env vars |
 | Rate-limited login, restricted CORS | ❌ / n.a. (same origin) | SECURITY.md |
 | Seed data: users, ~60 incidents over 30 days | ✅ (4 students, 4 technicians, 1 admin) | `DemoUserSeeder`, `DemoIncidentSeeder` |
-| ≥30 automated tests, TEST_CASES.md | ✅ ≈ 214 automated, 45 documented | TEST_CASES.md |
+| ≥30 automated tests, TEST_CASES.md | ✅ ≈ 222 automated, 51 documented | TEST_CASES.md |
 | Docs 1–10, UML (.puml + PNG), report PDF | ✅ | `docs/` |
 | Demo mode | 🟡 via SLA policy minutes + dev profile timers (D16) | DEMO_SCRIPT.md |
 | Service dependency graph | ❌ | – |
 | Chatbot-style reporting | ❌ | – |
 
 ### Verification performed in the final stage
-* 121 plain unit tests (72 existing + 49 new) compiled and run against framework stand-ins: **all pass**.
+* 129 plain unit tests (72 existing + 57 new) compiled and run against framework stand-ins: **all pass**.
 * All seven Flyway migrations applied to PostgreSQL 16; constraints inspected; demo seeder executed against it.
-* Frontend: `npm test` (5/5) and `npm run build` pass; Insights page rendered in headless Chromium with no console errors and no horizontal scroll at 390 px.
+* Frontend: `npm test` (5/5) and `npm run build` pass; Insights page, all three signed-in portals (desktop and 390 px), login and registration rendered in headless Chromium with no console errors and no horizontal scroll at 390 px.
 * **Not run here:** the full Maven build (Spring context, MockMvc, Hibernate validation, PostgreSQL integration tests), because Maven Central was unreachable. Run `./mvnw verify` (and with `BITSOLVE_DB_TESTS=true`) before submission.

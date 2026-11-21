@@ -92,7 +92,7 @@ export default function MyIncidents({ incidents, initialIncidentId, liveRole, te
         <div><h2 id="my-incidents-title">{title}</h2><p>{liveRole ? 'View and manage the incidents available to your account.' : 'View and track all your reported IT support requests.'}</p></div>
       </div>
       <IncidentSummary incidents={incidents} />
-      <p className="report-guidance">Open: New, Classified. In progress: Assigned, Acknowledged, In Progress. Resolved: Resolved, Verified, Closed. {liveRole ? 'Priority is calculated when the administrator classifies an incident.' : "Counts include this demo student's incidents."}</p>
+      <p className="report-guidance">Open: New, Classified. In progress: Assigned, Acknowledged, Awaiting Info, In Progress. Resolved: Resolved, Verified, Closed. {liveRole ? 'Priority is calculated when the administrator classifies an incident.' : "Counts include this demo student's incidents."}</p>
 
       <div className="incident-filters" role="search" aria-label="Search and filter incidents">
         <div className="report-field">

@@ -46,11 +46,7 @@ public class AdminManagementController {
         if (request.role() == Role.STUDENT && (request.studentNumber() == null || request.studentNumber().isBlank())) throw new IllegalArgumentException("Student ID is required.");
         if (request.role() == Role.TECHNICIAN && request.skill() == null) throw new IllegalArgumentException("Select a technician skill.");
         String hash = passwords.encode(request.password());
-        User user = switch (request.role()) {
-            case STUDENT -> new Student(request.name().trim(), address, hash, request.studentNumber().trim());
-            case TECHNICIAN -> new Technician(request.name().trim(), address, hash, Objects.requireNonNull(request.skill(), "Select a technician skill.").name());
-            case ADMIN -> new Administrator(request.name().trim(), address, hash, "Campus IT administration");
-        };
+        User user = com.bits.itsm.user.UserFactory.create(request.role(), request.name(), address, hash, request.studentNumber(), request.skill());
         users.saveAndFlush(user); audit(auth, "USER_CREATED", null, user.getRole().name(), "Created account " + user.getId()); return view(user);
     }
     @PutMapping("/users/{id}") @Transactional public UserView update(@PathVariable Long id, @Valid @RequestBody UserEdit request, Authentication auth) {

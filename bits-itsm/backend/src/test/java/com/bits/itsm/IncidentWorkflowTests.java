@@ -28,10 +28,10 @@ class IncidentWorkflowTests {
         assertThrows(InvalidStateTransitionException.class, () -> i.resolve("Fixed", "Tested"));
     }
     @Test void rejectsBlankContentAndEmptyResolution() {
-        assertThrows(IllegalArgumentException.class, () -> new Incident(" ", "An incident description", student, Incident.Category.NETWORK, Incident.ItService.CAMPUS_WIFI, Incident.Level.LOW, Incident.Level.LOW));
+        assertThrows(com.bits.itsm.exception.InvalidIncidentException.class, () -> new Incident(" ", "An incident description", student, Incident.Category.NETWORK, Incident.ItService.CAMPUS_WIFI, Incident.Level.LOW, Incident.Level.LOW));
         Incident i = investigating();
-        assertThrows(IllegalArgumentException.class, () -> i.resolve(" ", "Tested"));
-        assertThrows(IllegalArgumentException.class, () -> i.resolve("Fixed", " "));
+        assertThrows(com.bits.itsm.exception.InvalidIncidentException.class, () -> i.resolve(" ", "Tested"));
+        assertThrows(com.bits.itsm.exception.InvalidIncidentException.class, () -> i.resolve("Fixed", " "));
         assertEquals(IncidentStatus.IN_PROGRESS, i.getStatus());
     }
     @Test void rejectsUnavailableAndDisabledTechnicians() {

@@ -32,7 +32,7 @@ When a campus IT service fails (Wi-Fi in a hostel block, the ERP student portal 
 * **Analytics**: KPIs, trends, service analysis, workload, CSV/PDF export.
 
 ## Assumptions
-* All users have institutional `@hyderabad.bits-pilani.ac.in` accounts created by an administrator (no self-registration, to prevent abuse).
+* All users have institutional `@hyderabad.bits-pilani.ac.in` e-mail addresses. Students may self-register (student role only); technician and administrator accounts are created by an administrator.
 * Administrators also perform the team-lead role (approvals, reassignment).
 * One campus deployment; a single application instance with PostgreSQL is sufficient for the expected volume (hundreds of incidents per month).
 * Students rate impact and urgency on a three-level scale; business criticality is owned by IT per service.

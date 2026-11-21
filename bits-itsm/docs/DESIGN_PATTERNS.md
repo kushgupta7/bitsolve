@@ -46,7 +46,7 @@ Paths are relative to `backend/src/main/java/com/bits/itsm/`.
 
 * **`NotificationFactory.create(event, recipient)`** builds the right title and wording per `EventType`.
 * **`NotificationChannelFactory.channelsFor(notification)`** returns the channels whose `accepts()` preference matches. For example, SMS is used only for SLA breaches, escalations and major incidents (configurable `itsm.sms.events`).
-* **Users**: the concrete subclass (`Student`, `Technician`, `Administrator`) is chosen by the admin "create user" flow and JPA's single-table discriminator. Clients cannot set a role directly (`User.getRole()` is abstract).
+* **`UserFactory.create(role, …)`** is the single place that instantiates `Student`, `Technician` or `Administrator`; both admin account creation and student self-registration use it. Clients cannot set a role directly (`User.getRole()` is abstract).
 
 ## 6. Adapter: SMS gateway (and the persistence snapshot)
 
@@ -84,5 +84,22 @@ Spring Data JPA interfaces (`IncidentRepository`, `UserRepository`, `SlaPolicyRe
 | Composition | `Incident` owns notes, history, feedback, collaborators (cascade persist, no independent life); `PriorityBasedAssignment` contains a `LoadBasedAssignment` |
 | Association | `Incident` → reporter `Student`, → assigned `Technician` |
 | Aggregation | Audit entries reference incidents by id and outlive them; `EventBus` aggregates observers |
-| Exception handling | Custom hierarchy (`exception/`), checked `SmsDeliveryException` at the external boundary, `GlobalApiErrors` / `IncidentApiErrors` produce `{timestamp, status, code, message, path}` |
+| Exception handling | Custom hierarchy (`exception/`), checked `SmsDeliveryException` at the external boundary, `GlobalApiErrors` / `IncidentApiErrors` produce `{timestamp, status, code, message, path}`. See the table below. |
+
+## Exception handling: the brief's twelve situations
+
+| Brief situation | Exception (HTTP) | Thrown where |
+|---|---|---|
+| Invalid login | `InvalidLoginException` (401) | `AuthController` on any authentication failure (same message for wrong, unknown, disabled) |
+| Unauthorized operation | `UnauthorizedOperationException` (403) | State transition by the wrong role; insights for the wrong role; registration disabled |
+| Invalid incident | `InvalidIncidentException` (400) | `Incident` title/description/resolution length rules |
+| Invalid state transition | `InvalidStateTransitionException` (409) | Every `Incident` status change via `IncidentState` |
+| Technician unavailable | `TechnicianUnavailableException` (409) | `Incident.assign/reassign`; automatic assignment finds nobody |
+| Workload exceeded | `WorkloadExceededException` (409) | Manual assignment / transfer to a technician at capacity |
+| Service not found | `ServiceNotFoundException` (404) | `CatalogService.get` for an unknown IT service |
+| Missing SLA configuration | `MissingSlaConfigurationException` (409) | `SlaPolicies.capture` at classification |
+| Duplicate incident | `DuplicateIncidentException` (409) | Same report resubmitted (idempotency key); similar reports raise a *warning* event instead |
+| Database failure | `PersistenceException` (500, generic message) | `GlobalApiErrors` wraps any Spring `DataAccessException` |
+| Network failure | `ExternalServiceException` (502) + frontend retry | SMS adapter; `api.js` retries reads once and shows a friendly message |
+| Invalid user input | `ValidationException` (400) + Bean Validation | Search dates, registration rules, DTO constraints |
 | Collections | `EnumMap` (state transition tables, strategy registry, per-service correlation), `EnumSet` (actors per edge, SMS event preferences), `ConcurrentHashMap` + `AtomicInteger` (round-robin cursors), `ConcurrentLinkedDeque` (bounded SMS history), `LinkedHashMap` (30-day trend in calendar order, ordered recipients), `TreeMap` (sorted chart categories) |

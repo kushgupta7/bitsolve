@@ -60,7 +60,11 @@ for i, (title, f) in enumerate(SECTIONS, 1):
     text = re.sub(r"\A# .*\n", "", text)                              # drop the file's own title
     text = re.sub(r"(?m)^(#{2,5}) ", lambda m: "#" + m.group(1)[1:] + "# ", text)  # keep depth under section
     if f == "ARCHITECTURE.md":
-        text += "\n### Running application: Insights & Analytics page\n\n![Insights page (rendered with sample data)](images/insights-mock.png)\n"
+        text += ("\n### Running application (screenshots rendered with sample data)\n\n"
+                 "Each role has its own colour, badge, menu and home page (brief: \"difference in GUI for different users\").\n\n"
+                 "![Student portal (teal)](images/portal-student.png)\n\n![Technician portal (indigo)](images/portal-technician.png)\n\n"
+                 "![Administrator portal (navy/amber): live overview](images/portal-admin.png)\n\n![Student self-registration](images/portal-register.png)\n\n"
+                 "![Insights & Analytics page](images/insights-mock.png)\n")
     out.append(text)
 (D / "report.md").write_text("".join(out))
 subprocess.run(["pandoc", "report.md", "-s", "--toc", "--toc-depth=2", "--metadata", "lang=en", "-c", "report.css",

@@ -3,6 +3,7 @@ import StudentDashboard from './pages/StudentDashboard.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import TechnicianDashboard from './pages/TechnicianDashboard.jsx';
 import { apiRequest, apiPost, onSessionExpired } from './api.js';
+import RegisterForm from './Register.jsx';
 
 const loginNotice = 'Sign in with your institutional email and password to access campus IT support.';
 
@@ -70,6 +71,13 @@ function LoginPage({ onLogin, initialMessage }) {
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState(initialMessage || '');
   const [submitting, setSubmitting] = useState(false);
+  const [mode, setMode] = useState('login');
+  const [registrationOpen, setRegistrationOpen] = useState(false);
+  useEffect(() => {
+    let active = true;
+    apiRequest('auth/registration').then(data => { if (active) setRegistrationOpen(Boolean(data.enabled)); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -140,10 +148,10 @@ function LoginPage({ onLogin, initialMessage }) {
         <div className="signin-content">
           <div className="login-card">
             <span className="card-label">CAMPUS PORTAL</span>
-            <h2 id="signin-title">Welcome Back</h2>
-            <p className="signin-subtitle">Sign in using your BITS Hyderabad account</p>
+            <h2 id="signin-title">{mode === 'register' ? 'Create Account' : 'Welcome Back'}</h2>
+            <p className="signin-subtitle">{mode === 'register' ? 'Students can register with their BITS Hyderabad e-mail' : 'Sign in using your BITS Hyderabad account'}</p>
 
-            <form onSubmit={handleSubmit} noValidate aria-busy={submitting}>
+            {mode === 'register' ? <RegisterForm onCancel={() => setMode('login')} onRegistered={(address) => { setMode('login'); setEmail(address); setPassword(''); setMessage('Account created. Sign in with your new password.'); }} /> : <form onSubmit={handleSubmit} noValidate aria-busy={submitting}>
               <div className="field">
                 <div className="floating-input">
                   <input id="email" name="email" type="email" autoComplete="username" placeholder=" " value={email} onChange={handleChange} required spellCheck={false} autoCapitalize="none" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? 'email-error' : 'email-hint'} />
@@ -163,7 +171,8 @@ function LoginPage({ onLogin, initialMessage }) {
 
               <button className="submit-button" type="submit" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign In'} <span aria-hidden="true">→</span></button>
               <p className="status-message" role="status" aria-hidden={!message}>{message || loginNotice}</p>
-            </form>
+              {registrationOpen && <p className="auth-switch">New student? <button type="button" className="link-button" onClick={() => { setMode('register'); setMessage(''); }}>Create an account</button></p>}
+            </form>}
 
             <p className="access-note"><span aria-hidden="true">◇</span> Only authorized BITS Hyderabad accounts can access this portal.</p>
           </div>

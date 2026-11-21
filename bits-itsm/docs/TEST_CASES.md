@@ -1,9 +1,9 @@
 # Test cases
 
-**Automated suite:** the team's suite (165 backend tests, last full run 16 Nov 2026 on PostgreSQL) plus **49 new unit tests** added in the final stage (state machine, strategies, intelligence, SMS adapter, exports), giving about 214 automated tests. Run `./mvnw verify` for unit + MockMvc tests and `BITSOLVE_DB_TESTS=true ./mvnw verify` to add the PostgreSQL integration tests. Frontend: `npm test` (API client).
+**Automated suite:** the team's suite (165 backend tests, last full run 16 Nov 2026 on PostgreSQL) plus **57 new unit tests** added in the final stage (state machine, strategies, intelligence, SMS adapter, exports), giving about 222 automated tests. Run `./mvnw verify` for unit + MockMvc tests and `BITSOLVE_DB_TESTS=true ./mvnw verify` to add the PostgreSQL integration tests. Frontend: `npm test` (API client).
 
 "Actual" column:
-* **Pass**: re-run after the final changes (121 plain unit tests: 72 existing + 49 new).
+* **Pass**: re-run after the final changes (129 plain unit tests: 72 existing + 57 new).
 * **Re-run before submission**: Spring context / MockMvc / PostgreSQL tests that passed in the team's 16 Nov run but need a fresh `./mvnw verify` on a machine with Maven access.
 
 | ID | Description | Category | Preconditions | Input | Expected result | Actual | Automated test |
@@ -53,6 +53,12 @@
 | TC43 | Concurrent assignments cannot exceed capacity | Boundary / concurrency | tech with 1 free slot | two parallel assigns | exactly one succeeds | Re-run before submission | `PostgresAssignmentTests.concurrentAssignmentsCannotConsumeTheSameLastSlot` |
 | TC44 | Migrations preserve data V1→V7 | Persistence | legacy DB | Flyway upgrade | rows and captured deadlines unchanged | Re-run before submission | `PostgresMigrationTests` |
 | TC45 | API client: 401 expires session, network failure message | Frontend | – | mocked fetch | session-expired event; friendly message | Pass | `frontend/src/api.test.js` |
+| TC46 | All 12 brief error situations have distinct codes and statuses | Exception | – | construct each | 401/403/400/409/409/409/404/409/409/500/502/400, 12 distinct codes | Pass | `ExceptionHandlingTest.everyBriefSituationHasAStableCodeAndHttpStatus` |
+| TC47 | Database failure is wrapped without leaking SQL | Exception / security | – | `DataAccessException("…constraint users_email")` | 500 `PERSISTENCE_FAILURE`, message has no SQL detail | Pass | `ExceptionHandlingTest.databaseFailuresAreWrappedWithoutLeakingDetails` |
+| TC48 | Invalid incident text names the field | Invalid input | – | description "too short" | `InvalidIncidentException` "Description must contain 20–2000 characters." | Pass | `ExceptionHandlingTest.invalidIncidentFieldsRaiseInvalidIncidentWithTheFieldName` |
+| TC49 | Student registration validation | Invalid input / security | – | gmail address, 11-char password, bad ID, password containing e-mail name | each rejected with `ValidationException`; valid input accepted | Pass | `RegistrationRulesTest.rejectsNonInstitutionalEmailShortPasswordBadIdAndPasswordContainingEmailName`, `…acceptsAValidStudentRegistration` |
+| TC50 | Registration password boundary | Boundary | – | 11, 12, 73 characters | reject, accept, reject | Pass | `RegistrationRulesTest.passwordBoundaryIsTwelveCharactersAndSeventyTwoBytes` |
+| TC51 | UserFactory builds the right subtype | Normal | – | each role | Student / Technician / Administrator; missing student ID rejected | Pass | `RegistrationRulesTest.factoryCreatesTheSubtypeForEachRole` |
 
 Postgres* tests run only with `BITSOLVE_DB_TESTS=true` against a disposable PostgreSQL database.
 

@@ -16,6 +16,8 @@
 | S12 | CSV/spreadsheet formula injection in exports | Cells starting `= + - @` are prefixed with `'` and all cells are quoted | `InsightsService.cell`, `CsvExportTest` |
 | S13 | Secrets in source control | DB, SMTP and bootstrap credentials only via environment variables; demo seeding requires the `dev` profile **and** an explicit flag **and** a password variable | `application.properties`, `DemoUserSeeder` |
 | S14 | Lost/duplicated background actions after restart | SLA warnings, breaches, escalations and major-incident alerts are claimed in `scheduled_events` with a unique key before publishing | `ScheduledEvents.publishOnce` |
+| S16 | Abuse of self-registration | Only STUDENT accounts; institutional e-mail only; 12–72 byte passwords that may not contain the e-mail name; BCrypt; audited as `USER_REGISTERED`; can be disabled. Trade-off: "account already exists" reveals that an e-mail is registered (sign-up enumeration), which is acceptable for campus e-mail addresses that are public anyway | `RegistrationController` |
+| S17 | Double submission / replay of a report | One-time `Idempotency-Key` per report form; reuse → `DuplicateIncidentException` | `IncidentService.create` |
 | S15 | Notification spam by SMS | SMS restricted to urgent event types; delivery failures never roll back business actions | `SmsChannel` |
 
 ## Deliberate design choice: sessions instead of JWT

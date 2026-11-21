@@ -118,8 +118,27 @@ public class IncidentService {
         access(incident, user);
         return view(incident, user);
     }
+    // Idempotency keys of recent submissions (key -> time seen). ConcurrentHashMap: requests arrive on parallel threads.
+    private final java.util.concurrent.ConcurrentHashMap<String, java.time.Instant> submissions = new java.util.concurrent.ConcurrentHashMap<>();
+    static final java.time.Duration SUBMISSION_MEMORY = java.time.Duration.ofMinutes(10);
+
     @Transactional
-    public View create(Create request, String email) {
+    public View create(Create request, String email) { return create(request, email, null); }
+
+    /**
+     * Creates an incident. The browser sends a fresh Idempotency-Key per form; if the same key arrives again
+     * (double click, network retry) the report is rejected with DuplicateIncidentException instead of creating
+     * a second identical incident. Similar-but-new reports are not rejected: they get a duplicate warning.
+     */
+    @Transactional
+    public View create(Create request, String email, String idempotencyKey) {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            java.time.Instant now = java.time.Instant.now();
+            submissions.entrySet().removeIf(e -> e.getValue().isBefore(now.minus(SUBMISSION_MEMORY)));
+            if (submissions.putIfAbsent(email + ":" + idempotencyKey, now) != null) {
+                throw new com.bits.itsm.exception.DuplicateIncidentException("This report was already submitted. Check My Incidents.");
+            }
+        }
         User user = actor(email); role(user, Role.STUDENT);
         catalog.requireEnabled("CATEGORY", request.category().name());
         catalog.requireEnabled("SERVICE", request.affectedService().name());

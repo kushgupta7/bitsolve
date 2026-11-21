@@ -18,9 +18,10 @@ The team's code (session auth, three portals, four priority strategies, two assi
 | JUnit 5, Mockito, MockMvc, JaCoCo | ✅ (JaCoCo via `-Pcoverage`) | `backend/src/test`, `pom.xml` |
 | Dockerfile, docker-compose (Postgres + app + MailHog), GitHub Actions | ✅ (single app image serves UI, D4) | `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml` |
 | Layered architecture, controllers without logic, DTOs | ✅ | ARCHITECTURE.md |
-| ≥3 roles with different UI | ✅ Student / Technician / Admin | `pages/*` |
+| ≥3 roles with different UI | ✅ Student / Technician / Admin, distinct colour, badge, icons and home page each (D21) | `pages/*`, `HomePanels.jsx` |
+| Register / login | ✅ students self-register; staff created by admin (D5) | `RegistrationController`, `Register.jsx` |
 | TEAM_LEAD role | 🟡 performed by admins; level exists in escalation (D6) | – |
-| User inheritance, factory for subtype | ✅ | `user/` |
+| User inheritance, factory for subtype | ✅ `UserFactory` | `user/` |
 | Incident fields incl. INC id, SLA, notes, resolution, feedback, history | ✅ (`INC-1001` label) | `Incident`, `IncidentLabel` |
 | Impact/urgency 1–4, affected users count | 🟡 three levels, no user count (D7) | PRIORITY_ALGORITHM.md |
 | Admin-configurable categories/services with criticality | ✅ (rename/enable/criticality; new codes need code, D8) | `CatalogService` |
@@ -49,19 +50,19 @@ The team's code (session auth, three portals, four priority strategies, two assi
 | F Auto-categorisation | ✅ category (keyword rules); service suggestion ❌ | `CategorySuggester` |
 | G Suggested resolution | ✅ | `ResolutionSuggester` |
 | Intelligence behind interfaces; optional LLM adapter | 🟡 `SimilarityModel` interface; no LLM adapter (D14) | – |
-| Custom exception hierarchy + consistent JSON error | ✅ | `exception/` |
+| Custom exception hierarchy + consistent JSON error | ✅ all 12 brief situations thrown in real code paths (DESIGN_PATTERNS.md) | `exception/` |
 | Frontend friendly errors + network retry | ✅ one retry for reads | `api.js` |
 | Bean Validation, no secrets in code | ✅ | DTO records, env vars |
 | Rate-limited login, restricted CORS | ❌ / n.a. (same origin) | SECURITY.md |
 | Seed data: users, ~60 incidents over 30 days | ✅ (4 students, 4 technicians, 1 admin) | `DemoUserSeeder`, `DemoIncidentSeeder` |
-| ≥30 automated tests, TEST_CASES.md | ✅ ≈ 214 automated, 45 documented | TEST_CASES.md |
+| ≥30 automated tests, TEST_CASES.md | ✅ ≈ 222 automated, 51 documented | TEST_CASES.md |
 | Docs 1–10, UML (.puml + PNG), report PDF | ✅ | `docs/` |
 | Demo mode | 🟡 via SLA policy minutes + dev profile timers (D16) | DEMO_SCRIPT.md |
 | Service dependency graph | ❌ | – |
 | Chatbot-style reporting | ❌ | – |
 
 ## Verification performed in the final stage
-* 121 plain unit tests (72 existing + 49 new) compiled and run against framework stand-ins: **all pass**.
+* 129 plain unit tests (72 existing + 57 new) compiled and run against framework stand-ins: **all pass**.
 * All seven Flyway migrations applied to PostgreSQL 16; constraints inspected; demo seeder executed against it.
-* Frontend: `npm test` (5/5) and `npm run build` pass; Insights page rendered in headless Chromium with no console errors and no horizontal scroll at 390 px.
+* Frontend: `npm test` (5/5) and `npm run build` pass; Insights page, all three signed-in portals (desktop and 390 px), login and registration rendered in headless Chromium with no console errors and no horizontal scroll at 390 px.
 * **Not run here:** the full Maven build (Spring context, MockMvc, Hibernate validation, PostgreSQL integration tests), because Maven Central was unreachable. Run `./mvnw verify` (and with `BITSOLVE_DB_TESTS=true`) before submission.

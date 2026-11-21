@@ -14,7 +14,8 @@ public class IncidentController {
     public IncidentController(IncidentService service) { this.service = service; }
     @GetMapping("/options") public Options options(Authentication auth) { return service.options(auth.getName()); }
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public View create(@Valid @RequestBody Create request, Authentication auth) { return service.create(request, auth.getName()); }
+    public View create(@Valid @RequestBody Create request, Authentication auth,
+            @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey) { return service.create(request, auth.getName(), idempotencyKey); }
     @GetMapping({"", "/my"})
     public List<View> list(Authentication auth, jakarta.servlet.http.HttpServletRequest request,
             @RequestParam(required = false) String search, @RequestParam(required = false) IncidentStatus status,

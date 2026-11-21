@@ -36,8 +36,9 @@ All e-mails end in `@hyderabad.bits-pilani.ac.in`.
 
 | Brief requirement | Implementation |
 |---|---|
+| Register / login | ✅ Students self-register (institutional e-mail); staff accounts created by admins |
 | Report, classify, prioritise, assign, investigate, resolve, verify, close | ✅ All three portals; lifecycle enforced by the **State pattern** (`incident/state`) incl. `AWAITING_INFO` with paused SLA, reopen, and 72 h auto-close |
-| ≥3 roles with different UI | ✅ Student / Technician / Administrator portals |
+| ≥3 roles with different UI | ✅ Student (teal), Technician (indigo), Administrator (navy/amber) portals with their own home pages |
 | Priority determination | ✅ 4 runtime-switchable strategies ([PRIORITY_ALGORITHM.md](bits-itsm/docs/PRIORITY_ALGORITHM.md)) |
 | Technician assignment | ✅ Skill, Load, Round-robin, Priority-based, Smart recommendation + audited fallback; transfer/collaboration approvals |
 | SLA management | ✅ Policies per priority, captured deadlines, background monitor (warning at 80 %, breach), compliance % |
@@ -46,9 +47,9 @@ All e-mails end in `@hyderabad.bits-pilani.ac.in`.
 | Search, filtering, reporting | ✅ 9 combinable criteria, Insights & Analytics dashboards (Recharts), CSV + print-to-PDF export |
 | ≥2 intelligent features | ✅ 7: duplicate detection, major-incident correlation, P1 escalation (Chain of Responsibility), smart technician recommendation, SLA-risk prediction, auto-categorisation, suggested resolutions (TF-IDF) |
 | ≥2 design patterns | ✅ State, Strategy, Observer, Factory, Adapter, Chain of Responsibility, Repository ([DESIGN_PATTERNS.md](bits-itsm/docs/DESIGN_PATTERNS.md)) |
-| Exception handling | ✅ `BitsolveException` hierarchy, consistent JSON errors `{timestamp,status,code,message,path}` |
+| Exception handling | ✅ `BitsolveException` hierarchy covering all 12 situations in the brief, consistent JSON errors `{timestamp,status,code,message,path}` |
 | Persistence | ✅ PostgreSQL, Flyway V1–V7 |
-| ≥15 documented test cases | ✅ 45 documented, ≈214 automated ([TEST_CASES.md](bits-itsm/docs/TEST_CASES.md)) |
+| ≥15 documented test cases | ✅ 51 documented, ≈222 automated ([TEST_CASES.md](bits-itsm/docs/TEST_CASES.md)) |
 | Innovation | ✅ Correlation, SLA-risk prediction, smart recommendation, TF-IDF suggestions, analytics dashboard, automated escalation, event-driven design, Docker + CI, cloud-ready |
 
 Gaps and deliberate deviations are listed in [PLAN.md](bits-itsm/docs/PLAN.md) and [DECISIONS.md](bits-itsm/docs/DECISIONS.md).
@@ -82,7 +83,7 @@ PostgreSQL tests need a disposable database (see *Builds and tests* below). GitH
 
 | Area | Endpoints |
 |---|---|
-| Auth | `GET /api/auth/csrf`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
+| Auth | `GET /api/auth/csrf`, `POST /api/auth/register`, `GET /api/auth/registration`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
 | Incidents | `GET/POST /api/incidents` (filters: `search,status,category,priority,service,technician,from,to,sla`), `GET /api/incidents/my`, `GET /api/incidents/{id}`, `POST /api/incidents/{id}/{classify,acknowledge,start,notes,information,reply,resolve,verify,close,feedback,edit}`, `GET /api/incidents/lifecycle` |
 | Assignment | `POST /api/incidents/{id}/{assign,auto-assign}`, `GET /api/incidents/{id}/recommendations`, `GET/PUT /api/admin/assignment-strategy`, transfer/collaboration request endpoints |
 | Priority & SLA | `GET/PUT /api/admin/priority-strategy`, `POST …/preview`, `GET/PUT /api/admin/sla-policies/{priority}`, `GET /api/admin/sla/violations`, `GET /api/admin/escalations` |
@@ -116,7 +117,7 @@ bits-itsm/
 
 ## Verification status (21 Nov 2026)
 
-* 121 backend unit tests (72 existing + 49 new) pass; Flyway V1–V7 applied to PostgreSQL 16; demo seeder verified on PostgreSQL; frontend tests (5/5) and production build pass; Insights page checked in headless Chromium.
+* 129 backend unit tests (72 existing + 57 new) pass; Flyway V1–V7 applied to PostgreSQL 16; demo seeder verified on PostgreSQL; frontend tests (5/5) and production build pass; Insights page checked in headless Chromium.
 * **Before submitting**, run `./mvnw verify` (and the PostgreSQL suite) on a machine with Maven Central access: the final-stage changes could not be built with the real Spring/Hibernate libraries in the environment where they were written.
 
 ---
