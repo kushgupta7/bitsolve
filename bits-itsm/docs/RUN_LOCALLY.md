@@ -19,7 +19,9 @@ You do **not** need Java, Maven, Node or PostgreSQL installed for the easy route
    docker compose up --build
    ```
    The first run downloads images and builds the app (5–10 minutes). It is ready when the log shows
-   `Started BitsolveBackendApplication`.
+   `Started BitsolveBackendApplication`. On the very first start the demo accounts are created a few
+   seconds later (with the line `Seeded 60 demo incidents`), so if the first login says
+   "Invalid email or password", wait 10 seconds and try again.
 5. **Open http://localhost:8080** and log in with any demo account. The password is `BitsolveDemo2026`.
 
    | Role | E-mail |

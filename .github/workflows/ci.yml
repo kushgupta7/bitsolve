@@ -95,12 +95,18 @@ jobs:
           echo
           code=$(curl -s -o page.html -w '%{http_code}' http://localhost:8080/)
           echo "GET / -> $code"; grep -qi 'id="root"' page.html || { echo "::error title=smoke::UI not served (HTTP $code)"; head -c 400 page.html; exit 1; }
+          # On the very first start the demo accounts are committed together with the 60 sample incidents,
+          # a few seconds after "Started", so retry the login briefly, as a person would.
           jar=$(mktemp)
-          curl -s -c "$jar" -b "$jar" http://localhost:8080/api/auth/csrf -o csrf.json -w 'GET csrf -> %{http_code}\n'
-          header=$(python3 -c 'import json; d=json.load(open("csrf.json")); print(d["headerName"] + ": " + d["token"])')
-          code=$(curl -s -o login.json -w '%{http_code}' -c "$jar" -b "$jar" -H "$header" -H 'Content-Type: application/json' \
-            -d '{"email":"student01@hyderabad.bits-pilani.ac.in","password":"BitsolveDemo2026"}' http://localhost:8080/api/auth/login)
-          echo "POST login -> $code"; cat login.json; echo
+          for i in $(seq 1 30); do
+            curl -s -c "$jar" -b "$jar" http://localhost:8080/api/auth/csrf -o csrf.json
+            header=$(python3 -c 'import json; d=json.load(open("csrf.json")); print(d["headerName"] + ": " + d["token"])')
+            code=$(curl -s -o login.json -w '%{http_code}' -c "$jar" -b "$jar" -H "$header" -H 'Content-Type: application/json' \
+              -d '{"email":"student01@hyderabad.bits-pilani.ac.in","password":"BitsolveDemo2026"}' http://localhost:8080/api/auth/login)
+            echo "POST login (attempt $i) -> $code"
+            [ "$code" = 200 ] && break; sleep 3
+          done
+          cat login.json; echo
           [ "$code" = 200 ] || { echo "::error title=smoke::demo login failed (HTTP $code): $(head -c 300 login.json)"; exit 1; }
           code=$(curl -s -o incidents.json -w '%{http_code}' -b "$jar" http://localhost:8080/api/incidents)
           echo "GET incidents -> $code"
