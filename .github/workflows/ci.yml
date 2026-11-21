@@ -73,3 +73,28 @@ jobs:
           path: |
             bits-itsm/backend/target/surefire-reports
             bits-itsm/backend/target/site/jacoco
+
+  # Proves the one-command local run (docker compose up --build) works end to end.
+  docker-compose-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start the stack
+        working-directory: bits-itsm
+        run: docker compose up --build -d
+      - name: Wait for the app, then log in as a demo student
+        run: |
+          for i in $(seq 1 60); do curl -fs http://localhost:8080/api/health && break; sleep 5; done
+          curl -fs http://localhost:8080/api/health
+          curl -fs http://localhost:8080/ | grep -qi 'id="root"' && echo "UI served"
+          jar=$(mktemp)
+          header=$(curl -fs -c "$jar" -b "$jar" http://localhost:8080/api/auth/csrf | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["headerName"] + ": " + d["token"])')
+          curl -fs -c "$jar" -b "$jar" -H "$header" -H 'Content-Type: application/json' \
+            -d '{"email":"student01@hyderabad.bits-pilani.ac.in","password":"BitsolveDemo2026"}' http://localhost:8080/api/auth/login
+          echo; curl -fs -b "$jar" http://localhost:8080/api/incidents | python3 -c 'import sys,json; print("incidents visible to student01:", len(json.load(sys.stdin)))'
+      - name: App logs on failure
+        if: failure()
+        working-directory: bits-itsm
+        run: |
+          body=$(docker compose logs app 2>&1 | tail -80 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\r//g;s/\n/%0A/g')
+          echo "::error title=docker-compose app log::$body"
