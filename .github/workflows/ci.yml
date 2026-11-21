@@ -84,17 +84,26 @@ jobs:
         run: docker compose up --build -d
       - name: Wait for the app, then log in as a demo student
         run: |
-          for i in $(seq 1 60); do curl -fs http://localhost:8080/api/health && break; sleep 5; done
-          curl -fs http://localhost:8080/api/health
-          curl -fs http://localhost:8080/ | grep -qi 'id="root"' && echo "UI served"
+          set -u
+          ok=""; for i in $(seq 1 60); do if curl -fs http://localhost:8080/api/health; then ok=1; break; fi; sleep 5; done
+          [ -n "$ok" ] || { echo "::error title=smoke::app never became healthy"; exit 1; }
+          echo
+          code=$(curl -s -o page.html -w '%{http_code}' http://localhost:8080/)
+          echo "GET / -> $code"; grep -qi 'id="root"' page.html || { echo "::error title=smoke::UI not served (HTTP $code)"; head -c 400 page.html; exit 1; }
           jar=$(mktemp)
-          header=$(curl -fs -c "$jar" -b "$jar" http://localhost:8080/api/auth/csrf | python3 -c 'import sys,json; d=json.load(sys.stdin); print(d["headerName"] + ": " + d["token"])')
-          curl -fs -c "$jar" -b "$jar" -H "$header" -H 'Content-Type: application/json' \
-            -d '{"email":"student01@hyderabad.bits-pilani.ac.in","password":"BitsolveDemo2026"}' http://localhost:8080/api/auth/login
-          echo; curl -fs -b "$jar" http://localhost:8080/api/incidents | python3 -c 'import sys,json; print("incidents visible to student01:", len(json.load(sys.stdin)))'
+          curl -s -c "$jar" -b "$jar" http://localhost:8080/api/auth/csrf -o csrf.json -w 'GET csrf -> %{http_code}\n'
+          header=$(python3 -c 'import json; d=json.load(open("csrf.json")); print(d["headerName"] + ": " + d["token"])')
+          code=$(curl -s -o login.json -w '%{http_code}' -c "$jar" -b "$jar" -H "$header" -H 'Content-Type: application/json' \
+            -d '{"email":"student01@hyderabad.bits-pilani.ac.in","password":"BitsolveDemo2026"}' http://localhost:8080/api/auth/login)
+          echo "POST login -> $code"; cat login.json; echo
+          [ "$code" = 200 ] || { echo "::error title=smoke::demo login failed (HTTP $code): $(head -c 300 login.json)"; exit 1; }
+          code=$(curl -s -o incidents.json -w '%{http_code}' -b "$jar" http://localhost:8080/api/incidents)
+          echo "GET incidents -> $code"
+          [ "$code" = 200 ] || { echo "::error title=smoke::incident list failed (HTTP $code): $(head -c 300 incidents.json)"; exit 1; }
+          python3 -c 'import json; print("incidents visible to student01:", len(json.load(open("incidents.json"))))'
       - name: App logs on failure
         if: failure()
         working-directory: bits-itsm
         run: |
-          body=$(docker compose logs app 2>&1 | tail -80 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\r//g;s/\n/%0A/g')
+          body=$(docker compose logs --no-color app 2>&1 | grep -E "ERROR|Exception|Caused by|Started|WARN" | grep -v "already exists, skipping" | tail -25 | cut -c1-240 | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\r//g;s/\n/%0A/g')
           echo "::error title=docker-compose app log::$body"

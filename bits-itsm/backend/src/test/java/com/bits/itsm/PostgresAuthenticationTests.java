@@ -33,17 +33,23 @@ class PostgresAuthenticationTests {
     @Autowired private MockMvc mvc;
     @Value("${DEMO_USER_PASSWORD}") private String password;
 
+    // Other test classes share this database and may register extra students, so count only the seeded demo accounts.
+    private java.util.List<User> demoAccounts() {
+        return users.findAll().stream().filter(u -> u.getEmail().matches("(student0[1-4]|technician0[1-4]|admin01)@hyderabad\\.bits-pilani\\.ac\\.in")).toList();
+    }
+
     @Test
     void persistsNinePolymorphicAccountsAndDoesNotResetThemOnReseeding() {
-        assertEquals(9, users.count());
-        assertEquals(4, users.findAll().stream().filter(Student.class::isInstance).count());
-        assertEquals(4, users.findAll().stream().filter(Technician.class::isInstance).count());
-        assertEquals(1, users.findAll().stream().filter(Administrator.class::isInstance).count());
+        assertEquals(9, demoAccounts().size());
+        assertEquals(4, demoAccounts().stream().filter(Student.class::isInstance).count());
+        assertEquals(4, demoAccounts().stream().filter(Technician.class::isInstance).count());
+        assertEquals(1, demoAccounts().stream().filter(Administrator.class::isInstance).count());
+        long total = users.count();
         Map<Long, String> hashes = users.findAll().stream().collect(Collectors.toMap(User::getId, User::getPasswordHash));
-        for (User user : users.findAll()) assertTrue(passwords.matches(password, user.getPasswordHash()));
+        for (User user : demoAccounts()) assertTrue(passwords.matches(password, user.getPasswordHash()));
         seeder.run(null);
         seeder.run(null);
-        assertEquals(9, users.count());
+        assertEquals(total, users.count());
         // Compare booleans so a failure report cannot print hashes.
         assertTrue(hashes.equals(users.findAll().stream().collect(Collectors.toMap(User::getId, User::getPasswordHash))));
     }
@@ -51,9 +57,10 @@ class PostgresAuthenticationTests {
     @Test
     void databaseEnforcesNormalizedEmailUniqueness() {
         String email = "STUDENT01@HYDERABAD.BITS-PILANI.AC.IN";
+        long before = users.count();
         assertThrows(DataIntegrityViolationException.class, () -> users.saveAndFlush(
                 new Student("Duplicate", email, passwords.encode(password), "DUPLICATE")));
-        assertEquals(9, users.count());
+        assertEquals(before, users.count());
     }
 
     @Test

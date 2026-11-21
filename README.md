@@ -16,6 +16,7 @@ docker compose up --build
 * App and UI: http://localhost:8080
 * MailHog (e-mails sent by the app): http://localhost:8025
 * The `dev` profile seeds demo users and 60 historical incidents (only into an empty database).
+* Step-by-step guide for a fresh laptop (Docker Desktop, troubleshooting, running without Docker): [RUN_LOCALLY.md](bits-itsm/docs/RUN_LOCALLY.md)
 
 ### Demo credentials (docker-compose / dev profile only)
 
