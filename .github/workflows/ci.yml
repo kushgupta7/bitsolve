@@ -118,6 +118,12 @@ jobs:
             || { echo "::error title=smoke::report form has empty dropdowns (HTTP $code): $(head -c 300 options.json)"; exit 1; }
       - name: Main workflow end to end (report, classify + assign, start, transfer options, resolve, verify)
         run: python3 bits-itsm/scripts/smoke_flow.py http://localhost:8080
+      - name: Click through every page as student, technician and admin (empty dropdowns, on-screen errors, JS errors)
+        run: |
+          mkdir -p /tmp/crawl && cp bits-itsm/scripts/ui_crawl.mjs /tmp/crawl/ && cd /tmp/crawl
+          npm init -y >/dev/null && npm install --no-audit --no-fund playwright@1.49.1 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node ui_crawl.mjs http://localhost:8080
       - name: App logs on failure
         if: failure()
         working-directory: bits-itsm

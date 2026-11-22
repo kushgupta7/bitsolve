@@ -263,7 +263,7 @@ function TransferRequests({ technicianId }) {
       </table></div>}
     </section>
     <p className="report-guidance">Technician columns describe the original request. Historical transfers may have a different current primary owner. No approvals or cancellations are performed here.</p>
-    <dialog ref={dialog} className="incident-dialog technician-operation-dialog" aria-labelledby="transfer-detail-title" onClose={() => setSelected(null)}>
+    <dialog ref={dialog} className="incident-dialog technician-operation-dialog" aria-labelledby="transfer-detail-title" onClose={event => { if (event.target === event.currentTarget) setSelected(null); }}>
       <div className="dashboard-section-heading"><h2 id="transfer-detail-title">Transfer Request Details</h2><button type="button" className="report-clear" autoFocus onClick={() => dialog.current.close()}>Close</button></div>
       {selected && <>
         <DetailSection title={selected.id} items={[

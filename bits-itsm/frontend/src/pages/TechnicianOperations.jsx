@@ -118,7 +118,7 @@ export default function TechnicianOperations({ action, incident, technicianId, o
     finally { setBusy(false); }
   }
 
-  return <dialog ref={dialog} className="incident-dialog technician-operation-dialog" aria-labelledby="operation-title" aria-describedby="operation-notice" onClose={onClose}>
+  return <dialog ref={dialog} className="incident-dialog technician-operation-dialog" aria-labelledby="operation-title" aria-describedby="operation-notice" onClose={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div className="dashboard-section-heading"><h2 id="operation-title">{operationLabels[action]}</h2><button type="button" className="report-clear" autoFocus onClick={() => dialog.current.close()}>Close</button></div>
     {!onAction && <p id="operation-notice" className="report-guidance">Frontend preview only. Nothing is saved, submitted, sent or approved.</p>}
     {onAction && request && <p role="status">{loading ? 'Loading eligible technicians…' : 'Goes to the administrator for approval.'}</p>}

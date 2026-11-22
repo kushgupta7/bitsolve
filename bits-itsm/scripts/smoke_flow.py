@@ -92,4 +92,16 @@ mistake = student.call("POST", "/api/incidents", {
 withdrawn = student.call("POST", f"/api/incidents/{mistake['id']}/withdraw", {"content": "Reported by mistake"})
 assert withdrawn["status"] == "CLOSED" and withdrawn["resolvedAt"] is None, withdrawn["status"]
 step("student withdrew a report made by mistake")
+# E-mail really goes out (Docker routes it to MailHog on port 8025); the outbox is polled every few seconds.
+import time
+for _ in range(30):
+    try:
+        total = json.loads(urllib.request.urlopen(BASE.rsplit(":", 1)[0] + ":8025/api/v2/messages?limit=1").read())["total"]
+    except Exception:
+        total = 0
+    if total:
+        break
+    time.sleep(2)
+assert total, "no e-mail reached MailHog"
+step(f"{total} e-mail(s) delivered to MailHog")
 print("Workflow smoke test passed.")

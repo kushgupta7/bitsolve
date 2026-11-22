@@ -600,7 +600,7 @@ export default function AdminDashboard({ sessionUser, sessionNotice }) {
       </main>
       <footer className="dashboard-footer">BITSolve — BITS Hyderabad IT Support</footer>
     </div>
-    <dialog ref={dialog} className="incident-dialog admin-dialog" aria-labelledby="admin-dialog-title" onClose={() => { setSelection(null); setAction(null); }}>
+    <dialog ref={dialog} className="incident-dialog admin-dialog" aria-labelledby="admin-dialog-title" onClose={event => { if (event.target !== event.currentTarget) return; setSelection(null); setAction(null); }}>
       <div className="dashboard-section-heading"><h2 id="admin-dialog-title">{selection?.type === 'preview' ? selection.id : `${selection?.id || ''} · Review`}</h2><button className="report-clear" type="button" autoFocus onClick={close}>Close</button></div>
       <p className="report-guidance">Demo inspection and proposals only. No records, deadlines, permissions, audit logs or notifications are changed.</p>
       {selection?.type === 'incident' && <IncidentDetails incident={incidentById(selection.id)} open={open} setAction={setAction} />}

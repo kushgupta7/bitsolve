@@ -69,7 +69,7 @@ function Review({ request, collaboration, admin, userId, onClose, onSaved }) {
       onSaved(); onClose();
     } catch (error) { setError(error.message); } finally { setBusy(false); }
   }
-  return <dialog ref={dialog} className="incident-dialog" aria-labelledby="request-review-title" onClose={onClose}>
+  return <dialog ref={dialog} className="incident-dialog" aria-labelledby="request-review-title" onClose={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div className="dashboard-section-heading"><h2 id="request-review-title">{collaboration ? 'Collaboration' : 'Transfer'} Request {request.id}</h2><button className="report-clear" onClick={onClose}>Close</button></div>
     <dl className="incident-details">{[
       ['Incident', `${request.incidentId} · ${request.incidentTitle}`], ['Request Status', readableLabel(request.status)],

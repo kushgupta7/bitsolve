@@ -168,7 +168,7 @@ export default function MyIncidents({ incidents, initialIncidentId, initialFilte
         )}
       </section>
 
-      <dialog className="incident-dialog" ref={detailsDialog} aria-labelledby="incident-details-title" onClose={() => setSelectedIncident(null)}>
+      <dialog className="incident-dialog" ref={detailsDialog} aria-labelledby="incident-details-title" onClose={event => { if (event.target === event.currentTarget) setSelectedIncident(null); /* ignore a nested form's close */ }}>
         <div className="dashboard-section-heading">
           <h2 id="incident-details-title">Incident Details</h2>
           <button type="button" className="report-clear" autoFocus onClick={() => detailsDialog.current.close()}>Close</button>
