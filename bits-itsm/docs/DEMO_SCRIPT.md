@@ -16,13 +16,13 @@ Each member: name, role, the module they own (see TEAM.md). [NAME1] states the p
 1. On the login page click **Create an account** and register a new student (institutional e-mail, student ID, 12+ character password); show that a Gmail address is rejected. Sign in as the new student (or student01).
 2. **student01** → *Report Incident*: "Wi-Fi down in library reading room", description "Wireless keeps disconnecting on the 2nd floor, nobody can connect", service *Campus Wi-Fi*, **people affected 250**. Submit. Note the student does not rate severity: no impact or urgency on the form.
 3. Point out the incident status **New** and the student's in-app notification.
-4. **admin01** → *All Incidents* → open it. Show the **suggested category** (Network) with its explanation and the **related incidents** panel.
+4. **admin01**: the dashboard says **1 new incident to classify** → *Open all incidents* → open it. Show the **suggested category** (Network) with its explanation and the **Possible duplicates** panel.
 5. *Classify*: the admin assesses **impact HIGH** and **urgency HIGH**, confirms the category, and gets priority **P1** and captured deadlines. [NAME3] explains the multiplicative strategy, 3×3×3 = 27 ≥ 18 (PRIORITY_ALGORITHM.md), and that the strategy can be switched at runtime under *Assignment Strategies*.
-6. Show **Smart technician recommendation**: top 3 with reasons. Then *Assignment Strategies* → select **Smart Recommendation**, back to the incident → **Automatically Assign**.
+6. Leave **Assign a technician automatically** ticked and click **Classify & Assign**: one step classifies and hands the incident to a technician chosen by the selected strategy (*Assignment Strategies*, e.g. **Smart Recommendation**; its top-3 recommendations with reasons are shown on the incident). Manual reassignment stays available.
 7. Show notifications: technician bell, student timeline, MailHog e-mail "incident received", audit log entries (*Audit Logs*).
 
 ## 6:00 – 11:00 · Workflow 2: investigate → info request (SLA paused) → resolve → verify → feedback → close ([NAME2], [NAME4])
-1. **technician04** → *Acknowledge* (response SLA met) → *Start Investigation*.
+1. The assigned technician (dashboard → *Open my incidents*) clicks **Start Work**: one click records the acknowledgement (response SLA met) and starts the work.
 2. *Request Information*: "Which SSID and which device?" Status becomes **Awaiting Info**, and the detail view shows **Resolution SLA … (clock paused)**. [NAME4] explains the State pattern (`AwaitingInfoState.slaClockRunning() == false`) and that the deadline is extended by the paused time.
 3. **student01** sees "The technician needs more information" → reply. (Outside AWAITING_INFO the student can also use **Add information** at any time; the technician is notified.) Status returns to **In Progress**.
 4. Wait for the 80 % mark: an **SLA warning** notification appears (P2/P1 demo policy).
@@ -34,7 +34,7 @@ Each member: name, role, the module they own (see TEAM.md). [NAME1] states the p
 1. Using student01, student02 and student03, report three Wi-Fi problems within a minute, all with service *Campus Wi-Fi* and category *Network* (duplicate detection compares incidents with the same service and category) ("Wi-Fi not working in hostel", "Wireless down in Ram Bhawan", "Cannot connect to campus Wi-Fi in hostel").
 2. **admin01** notifications: **Possible duplicate incident** ("… may duplicate INC-… (xx % similar)").
 3. Within 30 s, **Major incident detected** (correlation: ≥ 3 reports on one service in 30 min). Open **Insights & Analytics** → *Major incidents* table; the terminal shows the **simulated SMS** (Adapter).
-4. Classify one as **P1** and assign it, but **do not acknowledge**. After the response deadline (2 min) the **escalation chain** fires: *Technician → Team Lead*, then one step later *→ System Administrator*, then *→ IT Manager*. Show *Escalations* and the notifications/SMS. [NAME4] explains Chain of Responsibility (`EscalationHandler`) and that each step is stored once in `scheduled_events`.
+4. Classify one as **P1** and assign it, but the technician does **not** click *Start Work*. After the response deadline (2 min) the **escalation chain** fires: *Technician → Team Lead*, then one step later *→ System Administrator*, then *→ IT Manager*. Show the escalation records (*Audit Logs* page, below the audit trail) and the notifications/SMS. [NAME4] explains Chain of Responsibility (`EscalationHandler`) and that each step is stored once in `scheduled_events`.
 5. Show **SLA risk prediction** on the Insights page (HIGH for the unacknowledged P1, with reasons).
 
 ## 16:00 – 18:30 · Insights, code and tests ([NAME1], [NAME2], [NAME4])

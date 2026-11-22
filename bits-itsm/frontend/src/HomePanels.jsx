@@ -59,7 +59,7 @@ export function TechnicianFocus({ onOpenIncidents }) {
     {risk && <section className="dashboard-incidents admin-section home-panel" aria-label="Your SLA focus">
       <div className="dashboard-section-heading"><h2>Work on these first</h2><span>Predicted SLA risk</span></div>
       <div className="insights-body"><RiskList items={risk.filter(r => r.level !== 'LOW').slice(0, 4)} empty="Nothing at risk. All your open incidents are on track." />
-        {onOpenIncidents && <div className="report-actions"><button type="button" className="incident-view" onClick={onOpenIncidents}>Open my incidents ({risk.length} open)</button></div>}</div>
+        {onOpenIncidents && <div className="report-actions"><button type="button" className="incident-view" onClick={onOpenIncidents}>Open my incidents</button></div>}</div>
     </section>}
   </>;
 }

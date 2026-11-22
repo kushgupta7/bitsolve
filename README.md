@@ -154,7 +154,7 @@ $env:BOOTSTRAP_ADMIN_PASSWORD='<unique password of at least 12 characters>'
 .\mvnw.cmd spring-boot:run
 ```
 
-Bootstrap creates the first administrator only when none exists. Remove the bootstrap variables afterward. Create accounts under **Manage Users**, then configure technician skills and availability under **Manage Technicians**. Institutional addresses must end in `@hyderabad.bits-pilani.ac.in`.
+Bootstrap creates the first administrator only when none exists. Remove the bootstrap variables afterward. Create accounts under **Users & Technicians**, then configure technician skills and availability on the same page (**Skills & capacity**). Institutional addresses must end in `@hyderabad.bits-pilani.ac.in`.
 
 For optional local demo accounts, set `SPRING_PROFILES_ACTIVE=dev`, `BITSOLVE_DEMO_SEED_ENABLED=true` and a unique `DEMO_USER_PASSWORD`. Existing passwords are never overwritten. Do not enable demo seeding in production.
 

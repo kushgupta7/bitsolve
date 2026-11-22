@@ -99,6 +99,16 @@ The project lives in the `bits-itsm/` subfolder. The repo root has `README.md`, 
 - **Exceptions:** `BitsolveException` hierarchy covering the brief's 12 situations, with JSON errors `{timestamp,status,code,message,path}`.
 - **Design patterns:** State, Strategy, Observer, Factory, Adapter, Chain of Responsibility, Repository (`docs/DESIGN_PATTERNS.md`).
 
+## 4a. Workflow and navigation clean-up (22 Nov, morning)
+- **Admin:** *Classify & Assign* is one step: confirm category, assess impact/urgency, "Assign a technician automatically" is ticked by default (frontend calls `classify` then `auto-assign`).
+- **Technician:** one **Start Work** button (calls `acknowledge` then `start`), instead of two dialogs.
+- **Admin menu:** Dashboard (shows "N new incidents to classify"), All Incidents, Insights & Analytics (+ status/priority/category tables, CSV), Requests (transfer + collaboration), Users & Technicians (accounts + skills/capacity/workload), IT Services, Incident Categories, SLA Policies, Assignment Strategies, Audit Logs (+ escalations), Notifications.
+  - Removed: Manage Technicians, Collaboration/Assignment Requests as separate pages, Escalations, Reports & Analytics, Settings.
+- **Technician menu:** Dashboard (availability + at-risk list), My Incidents (owned + collaborating), Requests, Notifications, Profile (+ workload). Removed: Assigned/Team/Investigation duplicates, My Workload.
+- **Student menu:** Dashboard (= my incidents), Report Incident, Notifications, Profile.
+- **Other UI changes:** the "Signed in as" band is now a compact sign-out row, and long guidance text was shortened.
+- **CI:** `bits-itsm/scripts/smoke_flow.py` runs the main workflow end to end against the Docker app: report, classify+assign, start, transfer candidates, availability, resolve, verify.
+
 ## 5. Demo-only configuration (important)
 - `DemoUserSeeder`: 9 accounts. `DemoIncidentSeeder`: 60 incidents over 30 days. Both run only with profile `dev` and `bitsolve.demo.seed-enabled=true`.
 - **`DemoShowcaseSeeder`** (new; `BITSOLVE_DEMO_SHOWCASE=true` is set in docker-compose):
