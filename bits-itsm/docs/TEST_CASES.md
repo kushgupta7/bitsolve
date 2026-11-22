@@ -72,6 +72,9 @@
 | TC62 | Technician with open work cannot be disabled | Business rule | technician04 owns an open incident | admin disables the account | 409, account stays enabled | Pass | `PostgresIncidentTests.technicianWithOpenIncidentsCannotBeDisabled` |
 | TC63 | Change own password; admin reset | Normal + invalid input | admin-created student | wrong current; too short; valid change; admin reset; blank reset | 400, 400, 200 (new hash), 200 (reset hash), blank keeps password | Pass | `PostgresManagementTests.passwordChangeAndAdminResetFollowTheRegistrationRule` |
 | TC64 | One password rule everywhere | Boundary | — | 8 chars, 73 chars, contains e-mail name, null | `ValidationException` each; 12+ chars accepted | Pass | `PasswordPolicyTest` |
+| TC65 | Mobile numbers are validated and canonical | Boundary / invalid input | — | 7 accepted formats; 5 invalid; blank | stored as "+91 98765 43210"; invalid → `ValidationException`; blank → no number | Pass | `PhoneNumberTest` |
+| TC66 | SMS only to people with a number | Normal + business rule | recipient with / without a number | send an SLA-breach alert | with: texted to that number, SENT; without: never texted, NO_NUMBER | Pass | `SmsAdapterTest.recipientsWithoutANumberAreLoggedAndNeverTexted`, `…theNumberOnFileIsTheOneTexted` |
+| TC67 | Phone set by user and admin; SMS log persisted | Normal | new account | invalid number; own number; admin sets; alert; admin clears; alert | 400; canonical number; SENT row with number; NO_NUMBER row; outbox lists the name | Pass | `PostgresManagementTests.phoneNumbersAreRealAndSmsIsOnlySentToPeopleWhoHaveOne` |
 
 Postgres* tests run only with `BITSOLVE_DB_TESTS=true` against a disposable PostgreSQL database.
 

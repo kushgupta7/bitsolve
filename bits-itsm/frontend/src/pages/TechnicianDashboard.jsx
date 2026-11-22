@@ -2,6 +2,7 @@ import Notifications from '../Notifications.jsx';
 import LiveIncidents from '../LiveIncidents.jsx';
 import AssignmentManagement from '../AssignmentManagement.jsx';
 import ChangePassword from '../ChangePassword.jsx';
+import PhoneNumberForm from '../PhoneNumberForm.jsx';
 import React, { useEffect, useRef, useState } from 'react';
 import Button27 from '../components/ui/button-27.jsx';
 import NavIcon from '../components/NavIcon.jsx';
@@ -392,7 +393,7 @@ export default function TechnicianDashboard({ incidents = demoIncidents, session
   if (sessionUser && page === 'dashboard') content = <><Welcome user={sessionUser} subtitle="Your incidents, ranked by what needs you first." /><TechnicianFocus onOpenIncidents={() => navigate('incidents')} /></>;
   if (sessionUser && page === 'incidents') content = <LiveIncidents role="TECHNICIAN" team />;
   if (sessionUser && page === 'requests') content = <><AssignmentManagement key="transfer" mode="transfer" role="TECHNICIAN" userId={sessionUser.id} /><AssignmentManagement key="collaboration" mode="collaboration" role="TECHNICIAN" userId={sessionUser.id} /></>;
-  if (sessionUser && page === 'profile') content = <><DetailSection title="Technician Profile" items={[['Name', sessionUser.name], ['Institutional Email', sessionUser.email]]} /><AssignmentManagement key="workload" mode="workload" role="TECHNICIAN" userId={sessionUser.id} /><ChangePassword /></>;
+  if (sessionUser && page === 'profile') content = <><DetailSection title="Technician Profile" items={[['Name', sessionUser.name], ['Institutional Email', sessionUser.email]]} /><AssignmentManagement key="workload" mode="workload" role="TECHNICIAN" userId={sessionUser.id} /><PhoneNumberForm initial={sessionUser.phone} /><ChangePassword /></>;
 
   return <div className={`student-dashboard technician-portal${isMenuOpen ? '' : ' menu-collapsed'}`}>
     <aside className="dashboard-sidebar" id="technician-sidebar" hidden={!isMenuOpen}>

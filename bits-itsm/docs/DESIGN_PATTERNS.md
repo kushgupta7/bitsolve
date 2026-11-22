@@ -53,7 +53,7 @@ Paths are relative to `backend/src/main/java/com/bits/itsm/`.
 | | |
 |---|---|
 | **Problem** | A third-party SMS SDK has its own method names, number format, response object and a checked exception. |
-| **Participants** | Target `SmsGateway`; Adapter `SmsGatewayAdapter`; Adaptee `ThirdPartySmsApi` (simulated vendor; logs instead of sending); client `SmsChannel` |
+| **Participants** | Target `SmsGateway`; Adapter `SmsGatewayAdapter`; Adaptee `ThirdPartySmsApi` (simulated vendor; logs instead of sending); client `SmsChannel` (looks the number up through `PhoneDirectory` — the user's own optional mobile number — and records every attempt as SENT / FAILED / NO_NUMBER in `sms_messages` via `SmsLog`) |
 | **Code** | `notification/sms/*` |
 | **How it works** | The adapter converts "+91 90123 45678" to MSISDN "919012345678", truncates to one 160-character segment, adds the sender id, and translates the checked `SmsDeliveryException` into the unchecked `ExternalServiceException`. |
 | **Why** | Changing SMS vendor (Twilio, MSG91) means writing one new adapter. A second adapter, `RepositoryIncidentLookup`, adapts JPA entities to immutable `IncidentSnapshot`s for the SLA and intelligence code. |

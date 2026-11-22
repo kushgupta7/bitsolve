@@ -118,9 +118,10 @@ export default function Insights() {
     </Section>
 
     <div className="insights-stack">
-      <Section title="Simulated SMS outbox" note="Adapter → fake SMS vendor">
-        <DataTable empty="No SMS sent yet. SMS is used for SLA breaches, escalations and major incidents." headers={['Time', 'To', 'Message', 'Delivered']}
-          rows={sms.map(s => [new Date(s.at).toLocaleTimeString(), s.phone, s.text, s.delivered ? 'Yes' : <span style={{ color: RISK }}>Failed</span>])} />
+      <Section title="SMS outbox" note="Urgent alerts · simulated provider via the Adapter">
+        <DataTable empty="No SMS yet. Staff with a mobile number get one for SLA breaches, escalations and major incidents." headers={['Time', 'To', 'Message', 'Status']}
+          rows={sms.map(s => [new Date(s.at).toLocaleString(), `${s.recipientName || 'User ' + s.recipientId}${s.phone ? ' · ' + s.phone : ''}`, s.text,
+            s.status === 'SENT' ? 'Sent' : s.status === 'NO_NUMBER' ? <span className="muted-text">No number on file</span> : <span style={{ color: RISK }}>Failed</span>])} />
       </Section>
       <Section title="Lifecycle (State pattern)" note="From the Java state classes">
         <DataTable empty="" headers={['State', 'Can move to (who)', 'SLA clock']}

@@ -44,7 +44,7 @@ All e-mails end in `@hyderabad.bits-pilani.ac.in`.
 | Priority determination | ✅ impact, urgency, service criticality and number of affected users; 4 runtime-switchable strategies ([PRIORITY_ALGORITHM.md](bits-itsm/docs/PRIORITY_ALGORITHM.md)) |
 | Technician assignment | ✅ Skill, Load, Round-robin, Priority-based, Smart recommendation + audited fallback; transfer/collaboration approvals |
 | SLA management | ✅ Policies per priority with a per-service SLA factor, captured deadlines, background monitor (warning at 80 %, breach), compliance % |
-| Notifications | ✅ Observer: in-app (persisted), e-mail outbox with retry, simulated SMS via **Adapter** |
+| Notifications | ✅ Observer: in-app (persisted), e-mail outbox with retry, SMS via **Adapter** (simulated provider) to staff who have a mobile number on file, logged in the database |
 | Audit trail | ✅ Immutable audit + per-incident history, admin filter |
 | Search, filtering, reporting | ✅ 9 combinable criteria (API and UI), Insights & Analytics dashboards (Recharts), CSV + print-to-PDF export |
 | ≥2 intelligent features | ✅ 6: duplicate detection, major-incident correlation, P1 escalation (Chain of Responsibility), smart technician recommendation, SLA-risk prediction, auto-categorisation |

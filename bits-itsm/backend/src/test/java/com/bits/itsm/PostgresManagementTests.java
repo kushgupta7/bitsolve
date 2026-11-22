@@ -31,6 +31,7 @@ class PostgresManagementTests {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
     @Autowired UserRepository users;
+    @Autowired com.bits.itsm.notification.sms.SmsChannel smsChannel;
     @Autowired org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     @Autowired ScheduledEvents scheduled;
     @Autowired EventBus bus;
@@ -186,5 +187,30 @@ class PostgresManagementTests {
         assertTrue(passwordEncoder.matches("Reset-By-Admin-2026", users.findByEmail(email(local)).orElseThrow().getPasswordHash()));
         call("admin01", "PUT", "admin/users/" + created.get("id").asLong(), Map.of("name", "QA Password", "enabled", true, "newPassword", ""), 200); // blank keeps it
         assertTrue(passwordEncoder.matches("Reset-By-Admin-2026", users.findByEmail(email(local)).orElseThrow().getPasswordHash()));
+    }
+    @Test void phoneNumbersAreRealAndSmsIsOnlySentToPeopleWhoHaveOne() throws Exception {
+        String local = "qaph" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        var created = call("admin01", "POST", "admin/users", Map.of("name", "QA Phone", "email", email(local), "password", "Initial-Password-2026", "role", "STUDENT", "studentNumber", "TEST-0926"), 200);
+        long id = created.get("id").asLong();
+        assertTrue(created.get("phone").isNull());
+        call(local, "PUT", "auth/phone", Map.of("phone", "12345"), 400);
+        var me = call(local, "PUT", "auth/phone", Map.of("phone", "098765 43210"), 200);
+        assertEquals("+91 98765 43210", me.get("phone").asText());
+        call("admin01", "PUT", "admin/users/" + id, Map.of("name", "QA Phone", "enabled", true, "phone", "+91 91234 56789"), 200);
+        assertEquals("+91 91234 56789", users.findById(id).orElseThrow().getPhone());
+
+        var alert = new com.bits.itsm.notification.Notification("qa-" + id, id, com.bits.itsm.event.EventType.SLA_BREACHED, null, "SLA breached", "QA check", java.time.Instant.now());
+        smsChannel.send(alert);
+        assertEquals("SENT", jdbc.queryForObject("select status from sms_messages where recipient_id=? order by id desc limit 1", String.class, id));
+        assertEquals("+91 91234 56789", jdbc.queryForObject("select phone from sms_messages where recipient_id=? order by id desc limit 1", String.class, id));
+
+        call("admin01", "PUT", "admin/users/" + id, Map.of("name", "QA Phone", "enabled", true, "phone", ""), 200);   // blank clears
+        assertNull(users.findById(id).orElseThrow().getPhone());
+        smsChannel.send(alert);
+        assertEquals("NO_NUMBER", jdbc.queryForObject("select status from sms_messages where recipient_id=? order by id desc limit 1", String.class, id));
+        var outbox = call("admin01", "GET", "admin/sms-outbox", Map.of(), 200);
+        boolean listed = false;   // other alerts may arrive concurrently, so search rather than rely on order
+        for (var entry : outbox) listed |= "QA Phone".equals(entry.get("recipientName").asText()) && "NO_NUMBER".equals(entry.get("status").asText());
+        assertTrue(listed, "outbox shows the NO_NUMBER attempt with the recipient's name");
     }
 }

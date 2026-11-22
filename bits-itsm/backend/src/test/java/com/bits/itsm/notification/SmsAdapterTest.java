@@ -13,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Adapter (SMS gateway), channel preferences and the channel factory. */
 class SmsAdapterTest {
+    /** Every recipient has this number on file (tests of the no-number case use their own directory). */
+    private static final com.bits.itsm.notification.sms.PhoneDirectory NUMBER = id -> java.util.Optional.of("+91 98765 43210");
     private Notification n(EventType type) { return new Notification("n1", 7L, type, 1L, "SLA breached", "INC-1 breached its resolution SLA.", Instant.now()); }
 
     @Test void adapterTranslatesToTheVendorApiAndReturnsAReceipt() {
@@ -28,14 +30,14 @@ class SmsAdapterTest {
     }
 
     @Test void smsChannelOnlyAcceptsConfiguredUrgentEvents() {
-        SmsChannel channel = new SmsChannel(new SmsGatewayAdapter(), "SLA_BREACHED,INCIDENT_ESCALATED");
+        SmsChannel channel = new SmsChannel(new SmsGatewayAdapter(), "SLA_BREACHED,INCIDENT_ESCALATED", NUMBER);
         assertTrue(channel.accepts(n(EventType.SLA_BREACHED)));
         assertFalse(channel.accepts(n(EventType.INCIDENT_CREATED)));
     }
 
     @Test void providerFailureIsRecordedButNeverThrown() {
         SmsGateway failing = (phone, text) -> { throw new ExternalServiceException("provider down"); };
-        SmsChannel channel = new SmsChannel(failing, "SLA_BREACHED");
+        SmsChannel channel = new SmsChannel(failing, "SLA_BREACHED", NUMBER);
         channel.send(n(EventType.SLA_BREACHED));
         assertEquals(1, channel.recent().size());
         assertFalse(channel.recent().get(0).delivered());
@@ -43,7 +45,7 @@ class SmsAdapterTest {
 
     @Test void longMessagesAreTruncatedToOneSegment() {
         List<String> sent = new ArrayList<>();
-        SmsChannel channel = new SmsChannel((phone, text) -> { sent.add(text); return "ok"; }, "SLA_BREACHED");
+        SmsChannel channel = new SmsChannel((phone, text) -> { sent.add(text); return "ok"; }, "SLA_BREACHED", NUMBER);
         channel.send(new Notification("n2", 7L, EventType.SLA_BREACHED, 1L, "t", "x".repeat(500), Instant.now()));
         assertTrue(sent.get(0).length() > 160); // channel passes full text; the adapter is responsible for truncation
         String receipt = new SmsGatewayAdapter().send("+91 90000 00000", "y".repeat(500));
@@ -52,10 +54,28 @@ class SmsAdapterTest {
 
     @Test void factoryReturnsOnlyChannelsThatAcceptTheNotification() {
         NotificationChannel inApp = new NotificationChannel() { public String name() { return "IN_APP"; } public void send(Notification x) { } };
-        SmsChannel sms = new SmsChannel(new SmsGatewayAdapter(), "SLA_BREACHED");
+        SmsChannel sms = new SmsChannel(new SmsGatewayAdapter(), "SLA_BREACHED", NUMBER);
         NotificationChannelFactory factory = new NotificationChannelFactory(List.of(inApp, sms));
         assertEquals(List.of(inApp), factory.channelsFor(n(EventType.INCIDENT_CREATED)));
         assertEquals(List.of(inApp, sms), factory.channelsFor(n(EventType.SLA_BREACHED)));
         assertEquals(List.of("IN_APP", "SMS"), factory.names());
+    }
+
+    @Test void recipientsWithoutANumberAreLoggedAndNeverTexted() {
+        List<String> numbersTexted = new ArrayList<>();
+        SmsChannel channel = new SmsChannel((phone, text) -> { numbersTexted.add(phone); return "SM1"; }, "SLA_BREACHED", id -> java.util.Optional.empty());
+        channel.send(n(EventType.SLA_BREACHED));
+        assertTrue(numbersTexted.isEmpty());                       // no invented number
+        assertEquals(SmsChannel.Status.NO_NUMBER, channel.recent().get(0).status());
+        assertNull(channel.recent().get(0).phone());
+    }
+
+    @Test void theNumberOnFileIsTheOneTexted() {
+        List<String> numbersTexted = new ArrayList<>();
+        SmsChannel channel = new SmsChannel((phone, text) -> { numbersTexted.add(phone); return "SM2"; }, "SLA_BREACHED", NUMBER);
+        channel.send(n(EventType.SLA_BREACHED));
+        assertEquals(List.of("+91 98765 43210"), numbersTexted);
+        assertEquals(SmsChannel.Status.SENT, channel.recent().get(0).status());
+        assertTrue(channel.recent().get(0).delivered());
     }
 }

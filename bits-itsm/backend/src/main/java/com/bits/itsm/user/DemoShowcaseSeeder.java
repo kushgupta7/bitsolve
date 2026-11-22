@@ -42,6 +42,10 @@ public class DemoShowcaseSeeder implements ApplicationRunner {
             "technician03", EnumSet.of(TechnicianSkill.DATABASE, TechnicianSkill.CLOUD, TechnicianSkill.STORAGE, TechnicianSkill.SOFTWARE, TechnicianSkill.SECURITY),
             "technician04", EnumSet.of(TechnicianSkill.NETWORK, TechnicianSkill.AUTHENTICATION, TechnicianSkill.SECURITY, TechnicianSkill.APPLICATION_SUPPORT, TechnicianSkill.DATABASE));
 
+    static final Map<String, String> DEMO_PHONES = Map.of(
+            "admin01", "+91 98765 10000", "technician01", "+91 98765 10001", "technician02", "+91 98765 10002",
+            "technician03", "+91 98765 10003", "technician04", "+91 98765 10004");
+
     private final CatalogService catalog;
     private final DemoUserSeeder demoUsers;
     private final UserRepository users;
@@ -69,8 +73,16 @@ public class DemoShowcaseSeeder implements ApplicationRunner {
             technician.configureAssignment(demo.getValue(), technician.getAvailability(), technician.getMaxWorkload());
             technicians++;
         }
-        if (services + technicians > 0) {
-            LoggerFactory.getLogger(getClass()).info("Demo showcase: configured {} services and {} technician skill sets.", services, technicians);
+        // Example mobile numbers for staff (who receive urgent SMS alerts); students get none. Only empty numbers are filled.
+        int phones = 0;
+        for (var demo : DEMO_PHONES.entrySet()) {
+            var user = users.findByEmail(demo.getKey() + "@hyderabad.bits-pilani.ac.in").orElse(null);
+            if (user == null || user.getPhone() != null) continue;
+            user.changePhone(demo.getValue());
+            phones++;
+        }
+        if (services + technicians + phones > 0) {
+            LoggerFactory.getLogger(getClass()).info("Demo showcase: configured {} services, {} technician skill sets and {} staff phone numbers.", services, technicians, phones);
         }
     }
 }

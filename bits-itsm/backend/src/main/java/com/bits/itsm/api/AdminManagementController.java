@@ -28,18 +28,20 @@ public class AdminManagementController {
     public AdminManagementController(UserRepository users, PasswordEncoder passwords, CatalogService catalog, AuditStore audit, AssignmentSettingsRepository settings, EmailChannel email, IncidentRepository incidents) {
         this.users = users; this.passwords = passwords; this.catalog = catalog; this.audit = audit; this.settings = settings; this.email = email; this.incidents = incidents;
     }
-    public record UserView(Long id, String name, String email, Role role, boolean enabled, String studentNumber) { }
+    public record UserView(Long id, String name, String email, Role role, boolean enabled, String studentNumber, String phone) { }
     public record NewUser(@NotBlank @Size(max=100) String name, @NotBlank String email, @NotNull Role role,
             @NotBlank @Size(max=200) String password, @Size(max=30) String studentNumber, TechnicianSkill skill) { }
     /** newPassword is optional: blank keeps the current password, anything else resets it (same rule as registration). */
-    public record UserEdit(@NotBlank @Size(max=100) String name, boolean enabled, @Size(max=200) String newPassword) {
-        public UserEdit(String name, boolean enabled) { this(name, enabled, null); }
+    /** phone is optional: null keeps the current number, blank clears it. */
+    public record UserEdit(@NotBlank @Size(max=100) String name, boolean enabled, @Size(max=200) String newPassword, @Size(max=30) String phone) {
+        public UserEdit(String name, boolean enabled) { this(name, enabled, null, null); }
+        public UserEdit(String name, boolean enabled, String newPassword) { this(name, enabled, newPassword, null); }
     }
     public record CatalogEdit(@NotBlank @Size(max=100) String label, boolean enabled, Incident.Level criticality,
             @jakarta.validation.constraints.DecimalMin("0.25") @jakarta.validation.constraints.DecimalMax("4.0") Double slaFactor) {
         public CatalogEdit(String label, boolean enabled, Incident.Level criticality) { this(label, enabled, criticality, null); }
     }
-    private UserView view(User user) { return new UserView(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.isEnabled(), user instanceof Student student ? student.getStudentNumber() : null); }
+    private UserView view(User user) { return new UserView(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.isEnabled(), user instanceof Student student ? student.getStudentNumber() : null, user.getPhone()); }
     private void audit(Authentication auth, String action, String before, String after, String description) {
         Long actor = users.findByEmail(auth.getName()).filter(User::isEnabled).orElseThrow().getId();
         audit.save(new AuditRecord("AUD-" + UUID.randomUUID(), Instant.now(), actor, null, action, before, after, description));
@@ -67,6 +69,7 @@ public class AdminManagementController {
         }
         String before = user.getName() + ":" + user.isEnabled();
         user.rename(request.name()); user.setEnabled(request.enabled());
+        if (request.phone() != null) user.changePhone(request.phone());
         boolean reset = request.newPassword() != null && !request.newPassword().isBlank();
         if (reset) {
             com.bits.itsm.auth.PasswordPolicy.check(request.newPassword(), user.getEmail());

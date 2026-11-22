@@ -396,3 +396,5 @@ button:focus-visible { outline: 3px solid #389ab8; outline-offset: 3px; }
 .reason-toggle { margin-top: 8px; }
 .reason-form { margin-top: 12px; border-left: 3px solid #9c3843; }
 .incident-view.danger { background: #9c3843; border-color: #9c3843; color: #fff; }
+
+.muted-text { color: #59728a; font-style: italic; }

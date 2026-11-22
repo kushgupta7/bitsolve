@@ -33,7 +33,7 @@
 | FR18 | Unacknowledged P1 escalates Technician → Team Lead → System Admin → IT Manager | Done |
 | FR19 | ≥3 incidents on one service within 30 min are correlated into a major incident and admins alerted | Done |
 | FR20 | Notifications for created, classified, priority change, assigned, acknowledged, info requested, resolved, closed, SLA warning/breach, escalation, duplicate, major incident | Done |
-| FR21 | Channels: in-app (persisted, read state), e-mail (reporter lifecycle events, outbox with retry), SMS (simulated, urgent events) | Done |
+| FR21 | Channels: in-app (persisted, read state), e-mail (reporter lifecycle events, outbox with retry), SMS (urgent events, to staff with a mobile number on file; simulated provider; every attempt logged) | Done |
 | FR22 | Immutable audit trail of every action with actor, previous/new state; admin can filter | Done |
 | FR23 | Search/filter by ID/keyword, status, category, priority, service, technician, date range, SLA status | Done (API and UI) |
 | FR24 | Dashboards: overview KPIs, trend, per-service, category, workload, SLA compliance, MTTA/MTTR, feedback; role-specific home pages (admin live overview, technician "work on these first", student welcome) | Done |

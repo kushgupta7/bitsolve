@@ -97,6 +97,10 @@ workload = technician.call("PUT", "/api/technician/availability", {"availability
 assert workload["availability"] == "BUSY"
 technician.call("PUT", "/api/technician/availability", {"availability": "AVAILABLE"})
 step("technician toggled availability")
+account = technician.call("PUT", "/api/auth/phone", {"phone": "98765 43210"})
+assert account["phone"] == "+91 98765 43210", account
+assert isinstance(admin.call("GET", "/api/admin/sms-outbox"), list)
+step("technician saved a mobile number; SMS outbox readable")
 
 resolved = technician.call("POST", f"/api/incidents/{incident_id}/resolve", {"summary": "Access point restarted.", "steps": "Rebooted AP-L2-03 and checked roaming."})
 assert resolved["status"] == "RESOLVED", resolved["status"]

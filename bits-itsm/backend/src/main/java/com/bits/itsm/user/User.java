@@ -25,6 +25,9 @@ public abstract class User {
 
     @Column(nullable = false)
     private boolean enabled = true;
+    /** Optional mobile number for urgent SMS alerts (canonical "+91 98765 43210"). */
+    @Column(length = 20)
+    private String phone;
 
     protected User() { }
 
@@ -51,6 +54,9 @@ public abstract class User {
     public String getEmail() { return email; }
     @JsonIgnore
     public String getPasswordHash() { return passwordHash; }
+    public String getPhone() { return phone; }
+    /** Set or clear (blank) the mobile number; invalid numbers are rejected. */
+    public void changePhone(String raw) { this.phone = PhoneNumber.normalize(raw); }
     /** Replace the stored BCrypt hash (password change or administrator reset; the rule is checked by PasswordPolicy). */
     public void changePasswordHash(String hash) {
         if (hash == null || !hash.startsWith("$2")) throw new IllegalArgumentException("A BCrypt password hash is required.");

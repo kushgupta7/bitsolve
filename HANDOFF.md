@@ -138,6 +138,14 @@ The project lives in the `bits-itsm/` subfolder. The repo root has `README.md`, 
   - e-mail actually arriving in MailHog.
 - **Profile:** shows the student ID (`/api/auth/me` now includes `studentNumber`).
 
+## 4d. SMS made honest (22 Nov, morning)
+- **Numbers:** users have an optional mobile number (`app_users.phone`, migration **V9**), validated and stored canonically by `PhoneNumber`. Staff set it on Profile (`PUT /api/auth/phone`); the admin sets or clears it in Users & Technicians (`UserEdit.phone`: null keeps it, blank clears it).
+- **Sending:** `SmsChannel` looks the number up through `PhoneDirectory` and only texts people who have one. Everyone else is logged as `NO_NUMBER`; no more generated numbers.
+- **Log:** every attempt is stored in `sms_messages` via `DatabaseSmsLog` (its own transaction, never blocks business work). The admin's "SMS outbox" on Insights shows the name, number and status (Sent / Failed / No number on file).
+- **Provider:** still simulated (`ThirdPartySmsApi` behind the Adapter), because of cost and TRAI DLT registration.
+- **Demo data:** the Docker demo gives admin01 and technician01–04 example numbers; students get none.
+- **Tests:** TC65–TC67.
+
 ## 5. Demo-only configuration (important)
 - `DemoUserSeeder`: 9 accounts. `DemoIncidentSeeder`: 60 incidents over 30 days. Both run only with profile `dev` and `bitsolve.demo.seed-enabled=true`.
 - **`DemoShowcaseSeeder`** (new; `BITSOLVE_DEMO_SHOWCASE=true` is set in docker-compose):
