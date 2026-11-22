@@ -49,10 +49,10 @@ class PostgresMigrationTests {
             after.keySet().retainAll(incident.keySet());
             assertEquals(new java.util.LinkedHashMap<String, Object>(incident), after);
             // V9 adds an optional phone column (null for existing accounts); every original column keeps its value.
-            var user = new java.util.LinkedHashMap<String, Object>(jdbc.queryForMap("select * from app_users where id=900"));
-            assertNull(user.get("phone"));
-            user.keySet().retainAll(account.keySet());
-            assertEquals(new java.util.LinkedHashMap<String, Object>(account), user);
+            var accountAfter = new java.util.LinkedHashMap<String, Object>(jdbc.queryForMap("select * from app_users where id=900"));
+            assertNull(accountAfter.get("phone"));
+            accountAfter.keySet().retainAll(account.keySet());
+            assertEquals(new java.util.LinkedHashMap<String, Object>(account), accountAfter);
             assertEquals(1, jdbc.queryForObject("select count(*) from incident_history where incident_id=900", Integer.class));
             assertEquals("LOAD_BASED", jdbc.queryForObject("select strategy from assignment_settings where id=1", String.class));
             assertEquals("WEIGHTED", jdbc.queryForObject("select strategy from priority_settings where id=1", String.class));

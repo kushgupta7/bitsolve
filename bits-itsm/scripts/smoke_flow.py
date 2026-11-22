@@ -10,6 +10,18 @@ import sys
 import urllib.error
 import urllib.request
 
+import traceback
+
+
+def _report(kind, value, tb):
+    """Show the failing check as a CI annotation (the step log is not always visible)."""
+    where = traceback.extract_tb(tb)[-1]
+    print(f"::error title=Workflow smoke test failed at line {where.lineno}::{where.line} -> {kind.__name__}: {value}")
+    traceback.print_exception(kind, value, tb)
+
+
+sys.excepthook = _report
+
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8080").rstrip("/")
 PASSWORD = "BitsolveDemo2026"
 DOMAIN = "@hyderabad.bits-pilani.ac.in"
@@ -33,6 +45,7 @@ class Session:
         except urllib.error.HTTPError as error:
             status, text = error.code, error.read().decode()
         if status not in expect:
+            print(f"::error title=Workflow smoke test::{self.email} {method} {path} -> HTTP {status}: {text[:300]}")
             raise SystemExit(f"FAIL {self.email} {method} {path} -> HTTP {status}: {text[:300]}")
         return json.loads(text) if text else None
 
