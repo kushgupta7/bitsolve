@@ -30,8 +30,11 @@ public class AdminManagementController {
     }
     public record UserView(Long id, String name, String email, Role role, boolean enabled, String studentNumber) { }
     public record NewUser(@NotBlank @Size(max=100) String name, @NotBlank String email, @NotNull Role role,
-            @NotBlank @Size(min=8,max=72) String password, @Size(max=30) String studentNumber, TechnicianSkill skill) { }
-    public record UserEdit(@NotBlank @Size(max=100) String name, boolean enabled) { }
+            @NotBlank @Size(max=200) String password, @Size(max=30) String studentNumber, TechnicianSkill skill) { }
+    /** newPassword is optional: blank keeps the current password, anything else resets it (same rule as registration). */
+    public record UserEdit(@NotBlank @Size(max=100) String name, boolean enabled, @Size(max=200) String newPassword) {
+        public UserEdit(String name, boolean enabled) { this(name, enabled, null); }
+    }
     public record CatalogEdit(@NotBlank @Size(max=100) String label, boolean enabled, Incident.Level criticality,
             @jakarta.validation.constraints.DecimalMin("0.25") @jakarta.validation.constraints.DecimalMax("4.0") Double slaFactor) {
         public CatalogEdit(String label, boolean enabled, Incident.Level criticality) { this(label, enabled, criticality, null); }
@@ -48,6 +51,7 @@ public class AdminManagementController {
         if (users.existsByEmail(address)) throw new IllegalStateException("An account already uses this email.");
         if (request.role() == Role.STUDENT && (request.studentNumber() == null || request.studentNumber().isBlank())) throw new IllegalArgumentException("Student ID is required.");
         if (request.role() == Role.TECHNICIAN && request.skill() == null) throw new IllegalArgumentException("Select a technician skill.");
+        com.bits.itsm.auth.PasswordPolicy.check(request.password(), address);
         String hash = passwords.encode(request.password());
         User user = com.bits.itsm.user.UserFactory.create(request.role(), request.name(), address, hash, request.studentNumber(), request.skill());
         users.saveAndFlush(user); audit(auth, "USER_CREATED", null, user.getRole().name(), "Created account " + user.getId()); return view(user);
@@ -63,6 +67,12 @@ public class AdminManagementController {
         }
         String before = user.getName() + ":" + user.isEnabled();
         user.rename(request.name()); user.setEnabled(request.enabled());
+        boolean reset = request.newPassword() != null && !request.newPassword().isBlank();
+        if (reset) {
+            com.bits.itsm.auth.PasswordPolicy.check(request.newPassword(), user.getEmail());
+            user.changePasswordHash(passwords.encode(request.newPassword()));
+            audit(auth, "PASSWORD_RESET", null, null, "Administrator reset the password of account " + id);
+        }
         audit(auth, "USER_UPDATED", before, user.getName() + ":" + user.isEnabled(), "Updated account " + id); return view(user);
     }
     @GetMapping("/catalog") public List<CatalogEntry> catalog() { return catalog.all(); }

@@ -66,10 +66,6 @@ public class RegistrationController {
         if (r.name().trim().length() < 2) throw new ValidationException("Enter your full name.");
         if (!EmailValidator.isValid(r.email().trim())) throw new ValidationException("Use your @hyderabad.bits-pilani.ac.in e-mail address.");
         if (!STUDENT_ID.matcher(r.studentNumber().trim()).matches()) throw new ValidationException("Student ID must be 4–30 letters or digits, e.g. 2025A7PS0001H.");
-        int bytes = r.password().getBytes(StandardCharsets.UTF_8).length;
-        if (r.password().length() < 12 || bytes > 72) throw new ValidationException("Password must be at least 12 characters (at most 72 bytes).");
-        if (r.password().toLowerCase(java.util.Locale.ROOT).contains(r.email().trim().split("@")[0].toLowerCase(java.util.Locale.ROOT))) {
-            throw new ValidationException("Password must not contain your e-mail name.");
-        }
+        PasswordPolicy.check(r.password(), r.email());
     }
 }

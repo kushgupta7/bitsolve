@@ -51,6 +51,11 @@ public abstract class User {
     public String getEmail() { return email; }
     @JsonIgnore
     public String getPasswordHash() { return passwordHash; }
+    /** Replace the stored BCrypt hash (password change or administrator reset; the rule is checked by PasswordPolicy). */
+    public void changePasswordHash(String hash) {
+        if (hash == null || !hash.startsWith("$2")) throw new IllegalArgumentException("A BCrypt password hash is required.");
+        this.passwordHash = hash;
+    }
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
 

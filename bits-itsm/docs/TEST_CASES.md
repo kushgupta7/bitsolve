@@ -70,6 +70,8 @@
 | TC60 | Withdraw / reject a NEW report | Normal + business rule | NEW incidents | student withdraws; admin rejects duplicate; technician tries; withdraw again | CLOSED without resolution; technician 403; second withdraw 409 | Pass | `PostgresIncidentTests.reporterWithdrawsAdminRejectsDuplicateAndTechnicianResumesWithoutReply`, `IncidentWorkflowTests.newReportCanBeWithdrawnOrRejectedButNothingLaterCan` |
 | TC61 | Technician resumes without a reply | Normal | AWAITING_INFO | technician `resume`; student `resume` | IN_PROGRESS, SLA clock resumes; student 403 | Pass | same Postgres test |
 | TC62 | Technician with open work cannot be disabled | Business rule | technician04 owns an open incident | admin disables the account | 409, account stays enabled | Pass | `PostgresIncidentTests.technicianWithOpenIncidentsCannotBeDisabled` |
+| TC63 | Change own password; admin reset | Normal + invalid input | admin-created student | wrong current; too short; valid change; admin reset; blank reset | 400, 400, 200 (new hash), 200 (reset hash), blank keeps password | Pass | `PostgresManagementTests.passwordChangeAndAdminResetFollowTheRegistrationRule` |
+| TC64 | One password rule everywhere | Boundary | — | 8 chars, 73 chars, contains e-mail name, null | `ValidationException` each; 12+ chars accepted | Pass | `PasswordPolicyTest` |
 
 Postgres* tests run only with `BITSOLVE_DB_TESTS=true` against a disposable PostgreSQL database.
 

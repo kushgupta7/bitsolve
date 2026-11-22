@@ -31,6 +31,7 @@ class PostgresManagementTests {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
     @Autowired UserRepository users;
+    @Autowired org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     @Autowired ScheduledEvents scheduled;
     @Autowired EventBus bus;
     final JsonMapper json = JsonMapper.builder().build();
@@ -172,5 +173,18 @@ class PostgresManagementTests {
             var after = call("admin01","GET","incidents/"+historical,Map.of(),200);
             assertEquals(before.get("priority"),after.get("priority")); assertEquals(before.get("responseDeadline"),after.get("responseDeadline")); assertEquals(before.get("resolutionDeadline"),after.get("resolutionDeadline"));
         } finally { call("admin01","PUT","admin/priority-strategy",original,200); }
+    }
+    @Test void passwordChangeAndAdminResetFollowTheRegistrationRule() throws Exception {
+        String local = "qapw" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        call("admin01", "POST", "admin/users", Map.of("name", "QA Short", "email", email(local + "x"), "password", "short-pw", "role", "STUDENT", "studentNumber", "TEST-0924"), 400);
+        var created = call("admin01", "POST", "admin/users", Map.of("name", "QA Password", "email", email(local), "password", "Initial-Password-2026", "role", "STUDENT", "studentNumber", "TEST-0925"), 200);
+        call(local, "POST", "auth/password", Map.of("currentPassword", "Wrong-Password-2026", "newPassword", "Another-Password-2026"), 400);
+        call(local, "POST", "auth/password", Map.of("currentPassword", "Initial-Password-2026", "newPassword", "too-short"), 400);
+        call(local, "POST", "auth/password", Map.of("currentPassword", "Initial-Password-2026", "newPassword", "Another-Password-2026"), 200);
+        assertTrue(passwordEncoder.matches("Another-Password-2026", users.findByEmail(email(local)).orElseThrow().getPasswordHash()));
+        call("admin01", "PUT", "admin/users/" + created.get("id").asLong(), Map.of("name", "QA Password", "enabled", true, "newPassword", "Reset-By-Admin-2026"), 200);
+        assertTrue(passwordEncoder.matches("Reset-By-Admin-2026", users.findByEmail(email(local)).orElseThrow().getPasswordHash()));
+        call("admin01", "PUT", "admin/users/" + created.get("id").asLong(), Map.of("name", "QA Password", "enabled", true, "newPassword", ""), 200); // blank keeps it
+        assertTrue(passwordEncoder.matches("Reset-By-Admin-2026", users.findByEmail(email(local)).orElseThrow().getPasswordHash()));
     }
 }
