@@ -62,7 +62,7 @@ class PostgresMigrationTests {
             assertEquals("HIGH", jdbc.queryForObject("select criticality from catalog_entries where code='CAMPUS_WIFI'", String.class));
             assertEquals("MEDIUM", jdbc.queryForObject("select criticality from catalog_entries where code='EMAIL'", String.class));
             assertEquals(155, jdbc.queryForObject("select resolution_minutes from sla_policies where priority='P2'", Integer.class));
-            assertEquals(9, jdbc.queryForObject("select count(*) from flyway_schema_history where success", Integer.class));
+            assertEquals(10, jdbc.queryForObject("select count(*) from flyway_schema_history where success", Integer.class));
             if (version.equals("1")) {
                 assertEquals(19, jdbc.queryForObject("select response_target_minutes from incidents where id=901", Integer.class));
                 assertEquals(155 * 60, jdbc.queryForObject("select extract(epoch from resolution_deadline-created_at)::int from incidents where id=901", Integer.class));

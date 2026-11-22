@@ -2,7 +2,7 @@
 
 CS F213 Object-Oriented Programming, BITS Pilani Hyderabad, Sem I 2026-27 · Group **[GROUP_NO]**
 
-Campus IT incident management with three role-specific portals (Student, Technician, Administrator), a State-pattern lifecycle, runtime-switchable priority and assignment strategies, SLA monitoring with escalation, event-driven notifications (in-app, e-mail, simulated SMS), an immutable audit trail, and six rule-based intelligent features. Java 25 · Spring Boot 4.1 · PostgreSQL · React 19 + Vite + Recharts.
+Campus IT incident management with three role-specific portals (Student, Technician, Administrator), a State-pattern lifecycle, runtime-switchable priority and assignment strategies, SLA monitoring with escalation, event-driven notifications (in-app, e-mail, simulated SMS), an immutable audit trail, and nine rule-based intelligent features. Java 25 · Spring Boot 4.1 · PostgreSQL · React 19 + Vite + Recharts.
 
 ![Architecture](bits-itsm/docs/diagrams/architecture.png)
 
@@ -47,7 +47,7 @@ All e-mails end in `@hyderabad.bits-pilani.ac.in`.
 | Notifications | ✅ Observer: in-app (persisted), e-mail outbox with retry, SMS via **Adapter** (simulated provider) to staff who have a mobile number on file, logged in the database |
 | Audit trail | ✅ Immutable audit + per-incident history, admin filter |
 | Search, filtering, reporting | ✅ 9 combinable criteria (API and UI), Insights & Analytics dashboards (Recharts), CSV + print-to-PDF export |
-| ≥2 intelligent features | ✅ 6: duplicate detection, major-incident correlation, P1 escalation (Chain of Responsibility), smart technician recommendation, SLA-risk prediction, auto-categorisation |
+| ≥2 intelligent features | ✅ 9: duplicate detection, major-incident correlation, P1 escalation (Chain of Responsibility), smart technician recommendation, SLA-risk prediction, auto-categorisation, "me too" duplicate prevention while reporting, urgency hint for the admin, "usually fixed within" estimate |
 | ≥2 design patterns | ✅ State, Strategy, Observer, Factory, Adapter, Chain of Responsibility, Repository ([DESIGN_PATTERNS.md](bits-itsm/docs/DESIGN_PATTERNS.md)) |
 | Exception handling | ✅ `BitsolveException` hierarchy covering all 12 situations in the brief, consistent JSON errors `{timestamp,status,code,message,path}` |
 | Persistence | ✅ PostgreSQL, Flyway V1–V8 |

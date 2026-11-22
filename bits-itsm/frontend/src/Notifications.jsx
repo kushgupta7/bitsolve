@@ -45,7 +45,7 @@ export default function Notifications({ records = [], readIds = [], onRead, onOp
           <div className="technician-notification-heading"><h3>{item.title}</h3><span className={`incident-status ${read ? 'status-resolved' : 'status-open'}`}>{read ? 'Read' : 'Unread'}</span></div>
           <p>{item.message}</p><p className="report-guidance">{item.id} · {readableLabel(item.type)} · {item.incidentId || 'General'} · <time dateTime={item.timestamp}>{item.timestamp.replace('T', ' ')}</time></p>
           <div className="technician-resource-links">
-            {live && item.incidentId && <button type="button" className="incident-view" onClick={() => setSelectedId(item.incidentId)}>Review incident {item.incidentId}</button>}
+            {live && item.incidentId && item.type !== 'CONFIRMED_ISSUE_UPDATE' && <button type="button" className="incident-view" onClick={() => setSelectedId(item.incidentId)}>Review incident {item.incidentId}</button>}
             {!live && onOpen && (canOpen(item) ? <button type="button" className="incident-view" onClick={() => onOpen(item)}>Review {item.referenceId || item.incidentId}</button> : <span>Incident details are unavailable for your current demo assignments.</span>)}
             {!read && <button type="button" className="report-clear" disabled={busy === item.id} onClick={() => markRead(item.id)} aria-label={`Mark ${item.id} as read`}>Mark as Read</button>}
           </div>

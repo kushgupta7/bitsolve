@@ -1,3 +1,4 @@
+import SimilarIssues from './SimilarIssues.jsx';
 import React, { useEffect, useState } from 'react';
 import { apiRequest, apiPost } from './api.js';
 import { incidentCategories, services } from './demoData.js';
@@ -129,6 +130,7 @@ export default function ReportIncident({ onCancel, live = false, onViewIncidents
         </div>
 
         <div className="report-row">{dropdowns.map(renderDropdown)}</div>
+        {live && <SimilarIssues service={form.affectedService} text={`${form.title} ${form.description}`} />}
         {live && options && (!options.services.length || !options.categories.length) && <p className="report-error" role="alert">No {options.services.length ? 'incident categories' : 'IT services'} are available for reporting yet. An administrator must enable them (Admin › IT Services, with a business criticality) before incidents can be reported.</p>}
 
         <div className="report-field">

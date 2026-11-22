@@ -197,7 +197,8 @@ class PostgresIncidentTests {
         assertTrue(users.findByEmail(email("technician04")).orElseThrow().isEnabled());
     }
     JsonNode getApi(String name, String path, int status) throws Exception {
-        var result = mvc.perform(get("/api" + path).with(user(email(name)))).andExpect(status().is(status)).andReturn();
+        String role = name.startsWith("admin") ? "ADMIN" : name.startsWith("technician") ? "TECHNICIAN" : "STUDENT";
+        var result = mvc.perform(get("/api" + path).with(user(email(name)).roles(role))).andExpect(status().is(status)).andReturn();
         String body = result.getResponse().getContentAsString();
         return body.isBlank() ? null : json.readTree(body);
     }
@@ -240,6 +241,7 @@ class PostgresIncidentTests {
         assertTrue(told, "the confirming student is notified of the fix");
         postAs("student03", "/" + id + "/confirm", Map.of(), 409);       // no longer open
 
+        testCatalog.update("SERVICE", "EMAIL", "Email Services", true, com.bits.itsm.incident.Incident.Level.MEDIUM);
         var personal = new java.util.HashMap<String, Object>(payload());
         personal.put("affectedService", "EMAIL"); personal.put("category", "APPLICATION");
         long email = postAs("student01", "", personal, 201).get("id").asLong();

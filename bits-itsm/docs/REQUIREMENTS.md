@@ -39,6 +39,9 @@
 | FR24 | Dashboards: overview KPIs, trend, per-service, category, workload, SLA compliance, MTTA/MTTR, feedback; role-specific home pages (admin live overview, technician "work on these first", student welcome) | Done |
 | FR25 | Export incidents to CSV; print-to-PDF of the analytics page | Done |
 | FR26 | SLA risk prediction per open incident (admin all; technician own) | Done |
+| FR27 | While reporting, a student sees similar open reports on the same shared service and can confirm "me too" (one per student; never changes priority; notified when fixed) | Done |
+| FR28 | The administrator sees a suggested urgency with reasons when classifying | Done |
+| FR29 | Incident details show "usually fixed within" from similar resolved incidents (only with enough history) | Done |
 
 ## Non-functional requirements
 | ID | Requirement |

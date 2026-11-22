@@ -63,13 +63,41 @@ incident_id = created["id"]
 assert created["status"] == "NEW", created["status"]
 step(f"student reported incident {incident_id} without rating impact/urgency (provisional {created['impact']}/{created['urgency']})")
 
+# "Me too": another student finds the open report while typing and confirms instead of filing a duplicate.
+from urllib.parse import quote
+peer = Session("student02" + DOMAIN)
+query = f"/api/incidents/similar-open?service=CAMPUS_WIFI&text={quote('wifi keeps disconnecting in the library')}"
+assert any(item["id"] == incident_id for item in peer.call("GET", query)), "similar open report not suggested"
+assert all(item["id"] != incident_id for item in student.call("GET", query)), "own report must not be suggested"
+first = peer.call("POST", f"/api/incidents/{incident_id}/confirm", {})
+again = peer.call("POST", f"/api/incidents/{incident_id}/confirm", {})
+assert first["confirmedByYou"] and again["confirmations"] == first["confirmations"], "a second click must not count twice"
+student.call("POST", f"/api/incidents/{incident_id}/confirm", {}, expect=(409,))
+step(f"student02 found the report while typing and confirmed it once ({first['confirmations']} confirmation)")
+
 admin = Session("admin01" + DOMAIN)
+urgent = student.call("POST", "/api/incidents", {
+    "title": "Smoke test: portal down before exam",
+    "description": "Nobody in the whole hostel can log in to submit the exam assignment due today.",
+    "category": "APPLICATION", "affectedService": "STUDENT_PORTAL"})
+hint = admin.call("GET", f"/api/admin/incidents/{urgent['id']}/urgency-hint")
+assert hint["available"] and hint["level"] == "HIGH" and len(hint["reasons"]) >= 2, hint
+student.call("POST", f"/api/incidents/{urgent['id']}/withdraw", {"content": "Smoke test clean-up"})
+step(f"urgency hint for the admin: {hint['level']} because the report {'; '.join(hint['reasons'])}")
+
 classified = admin.call("POST", f"/api/incidents/{incident_id}/classify", {"category": "NETWORK", "impact": "HIGH", "urgency": "HIGH"})
 assert classified["status"] == "CLASSIFIED" and classified["impact"] == "HIGH", classified
 assigned = admin.call("POST", f"/api/incidents/{incident_id}/auto-assign", {})
 assert assigned["status"] == "ASSIGNED" and assigned["assignedTechnician"], assigned
 technician_id = assigned["assignedTechnician"]["id"]
 step(f"admin classified (priority {assigned['priority']}) and auto-assigned to {assigned['assignedTechnician']['name']}")
+
+estimate = student.call("GET", f"/api/incidents/{incident_id}/resolution-estimate")
+if estimate["available"]:
+    assert estimate["usuallyWithinMinutes"] >= estimate["typicalMinutes"] and estimate["basedOn"] >= 5, estimate
+    step(f"estimate: usually fixed within {estimate['usuallyWithinMinutes']} min (based on {estimate['basedOn']} incidents, {estimate['basis']})")
+else:
+    step("estimate: not enough similar history yet (nothing shown)")
 
 email = next(user["email"] for user in admin.call("GET", "/api/admin/users") if user["id"] == technician_id)
 technician = Session(email)
@@ -120,6 +148,9 @@ assert resolved["status"] == "RESOLVED", resolved["status"]
 verified = student.call("POST", f"/api/incidents/{incident_id}/verify", {"confirmed": True})
 assert verified["status"] == "VERIFIED", verified["status"]
 step("technician resolved and student verified")
+told = any(n["type"] == "CONFIRMED_ISSUE_UPDATE" and n["incidentId"] == incident_id for n in peer.call("GET", "/api/notifications"))
+assert told, "the confirming student was not told about the fix"
+step("student02 (who confirmed) was notified of the fix")
 mistake = student.call("POST", "/api/incidents", {
     "title": "Smoke test: projector not working",
     "description": "The projector in room F-102 shows no signal from the HDMI cable at all.",

@@ -146,6 +146,24 @@ The project lives in the `bits-itsm/` subfolder. The repo root has `README.md`, 
 - **Demo data:** the Docker demo gives admin01 and technician01–04 example numbers; students get none.
 - **Tests:** TC65–TC67.
 
+## 4e. Three new intelligent features (22 Nov, morning)
+- **"Is this the same problem?" + "Me too"** (`IncidentAssistService`, `SimilarOpenIssues`, `SimilarIssues.jsx`, migration **V10**):
+  - **Finding matches:** while typing a report, a student sees up to 3 similar open reports on the same shared service.
+  - **Confirming:** "This affects me too" is recorded once per student (`incident_confirmations` primary key).
+  - **Safeguards:**
+    - shared services only (`ItService.isShared`: Wi-Fi, network, portal, labs, library; never e-mail or login);
+    - open reports from the last 48 h only;
+    - never the student's own report;
+    - only title, status, time and count are shown;
+    - **no effect on priority**; the admin sees "N other students confirmed".
+  - **Follow-up:** confirmers get a `CONFIRMED_ISSUE_UPDATE` notification (no link, since it isn't their incident) when the report is resolved or closed without action.
+- **Urgency hint** (`UrgencyHinter`, `GET /api/admin/incidents/{id}/urgency-hint`): explainable keyword rules with reasons. The admin sees it in the Classify form and can click "Use High", or ignore it.
+- **"Usually fixed within"** (`ResolutionTimeEstimator`, `GET /api/incidents/{id}/resolution-estimate`):
+  - median and 75th percentile of similar resolved incidents (same category + priority, then the priority alone), needing at least 5 samples;
+  - shown in incident details for classified, open incidents.
+- **Tests:** TC68–TC75. `smoke_flow.py` and `ui_crawl.mjs` exercise all three; the crawler adds a second student who confirms "me too" through the form.
+- **Count:** the README now lists 9 intelligent features.
+
 ## 5. Demo-only configuration (important)
 - `DemoUserSeeder`: 9 accounts. `DemoIncidentSeeder`: 60 incidents over 30 days. Both run only with profile `dev` and `bitsolve.demo.seed-enabled=true`.
 - **`DemoShowcaseSeeder`** (new; `BITSOLVE_DEMO_SHOWCASE=true` is set in docker-compose):

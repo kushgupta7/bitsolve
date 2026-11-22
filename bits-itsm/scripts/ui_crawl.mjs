@@ -98,12 +98,12 @@ async function student(browser) {
   for (const label of await navButtons(page)) await step(role, label, async () => { await go(page, label); await check(page, role, label); });
   await step(role, 'Report Incident (submit)', async () => {
     await go(page, 'Report Incident');
-    await page.fill('#incident-title', 'UI check: lab PC will not boot');
-    await page.fill('#incident-description', 'The third PC in the second-floor lab shows a black screen after the BIOS logo.');
-    for (const id of ['#incident-category', '#incident-affectedService']) {
-      const value = await page.locator(id).evaluate(s => [...s.options].find(o => o.value)?.value || '');
-      if (!value) { note(role, 'Report Incident', `${id} has nothing to choose`); return; }
-      await page.selectOption(id, value);
+    await page.fill('#incident-title', 'UI check: Wi-Fi down in the library reading room');
+    await page.fill('#incident-description', 'Wireless keeps disconnecting in the library reading room on the second floor.');
+    for (const [id, wanted] of [['#incident-category', 'NETWORK'], ['#incident-affectedService', 'CAMPUS_WIFI']]) {
+      const values = await page.locator(id).evaluate(s => [...s.options].map(o => o.value).filter(Boolean));
+      if (!values.length) { note(role, 'Report Incident', `${id} has nothing to choose`); return; }
+      await page.selectOption(id, values.includes(wanted) ? wanted : values[0]);
     }
     await page.getByRole('button', { name: /Submit Incident/i }).click();
     await page.getByText(/submitted/i).first().waitFor({ timeout: 8000 });
@@ -115,6 +115,26 @@ async function student(browser) {
     else note(role, 'Dashboard', 'no incidents listed');
   });
   await step(role, 'Profile', async () => { await go(page, 'Profile'); await check(page, role, 'Profile (change password)'); });
+  await page.context().close();
+}
+
+/** A second student starts a similar report: the open one must be suggested, and "me too" must work. */
+async function secondStudent(browser) {
+  const role = 'student02';
+  const page = await login(browser, 'student02', role);
+  await step(role, 'Report Incident (me too)', async () => {
+    await go(page, 'Report Incident');
+    await page.selectOption('#incident-affectedService', 'CAMPUS_WIFI');
+    await page.fill('#incident-title', 'wifi keeps disconnecting in the library');
+    const panel = page.locator('.similar-issues');
+    await panel.waitFor({ timeout: 6000 }).catch(() => {});
+    if (!(await panel.count())) { note(role, 'Report Incident', 'the open Wi-Fi report was not suggested while typing'); return; }
+    await check(page, role, 'similar open reports panel');
+    await panel.getByRole('button', { name: 'This affects me too' }).first().click();
+    await panel.getByText(/notify you when it's fixed/i).first().waitFor({ timeout: 6000 });
+    console.log('  ✓ [student02] confirmed "me too" through the form');
+    checked.push('student02: me too confirmed');
+  });
   await page.context().close();
 }
 
@@ -184,7 +204,7 @@ async function admin(browser) {
 }
 
 const browser = await chromium.launch();
-for (const [name, run] of [['student', student], ['technician', technician], ['admin', admin]]) {
+for (const [name, run] of [['student', student], ['student02', secondStudent], ['technician', technician], ['admin', admin]]) {
   console.log(`\n== ${name}`);
   try { await run(browser); } catch (error) { note(name, 'session', error.message.split('\n')[0]); }
 }

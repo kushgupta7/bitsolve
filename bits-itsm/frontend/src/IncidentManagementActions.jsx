@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import TechnicianOperations, { operationLabels } from './pages/TechnicianOperations.jsx';
 import { apiRequest } from './api.js';
-import { Recommendations } from './IncidentAssist.jsx';
+import { Recommendations, UrgencyHint } from './IncidentAssist.jsx';
 import ReasonAction from './ReasonAction.jsx';
 
 const LEVELS = [['LOW', 'Low'], ['MEDIUM', 'Medium'], ['HIGH', 'High']];
@@ -79,6 +79,8 @@ export default function IncidentManagementActions({ incident, role, options, onA
         <div className="report-field"><label htmlFor="classify-impact">Impact (how many are affected)</label><select id="classify-impact" value={impact} onChange={event => setImpact(event.target.value)} required><option value="">Assess impact</option>{LEVELS.map(([value, label]) => <option key={value} value={value}>{label}: {IMPACT_HINTS[value]}</option>)}</select></div>
         <div className="report-field"><label htmlFor="classify-urgency">Urgency (how soon it is needed)</label><select id="classify-urgency" value={urgency} onChange={event => setUrgency(event.target.value)} required><option value="">Assess urgency</option>{LEVELS.map(([value, label]) => <option key={value} value={value}>{label}: {URGENCY_HINTS[value]}</option>)}</select></div>
       </div>}
+      {incident.status === 'NEW' && <UrgencyHint incident={incident} onUse={level => setUrgency(level)} />}
+      {incident.status === 'NEW' && incident.confirmations > 0 && <p className="report-guidance"><strong>{incident.confirmations} other student{incident.confirmations === 1 ? '' : 's'}</strong> confirmed they are affected ("me too"). This is a signal; it does not change the priority by itself.</p>}
       {incident.status === 'NEW' && incident.affectedUsers && <p className="report-guidance">Reporter estimates {incident.affectedUsers} people affected{incident.affectedUsers > 100 ? ' (more than 100 raises the priority one level)' : ''}.</p>}
       {incident.status === 'NEW' && <label className="report-check"><input type="checkbox" checked={autoAssign} onChange={event => setAutoAssign(event.target.checked)} /> Assign a technician automatically</label>}
       {assignable && <div className="report-field"><label htmlFor="assign-technician">Assign Technician</label><select id="assign-technician" value={technicianId} onChange={event => setTechnicianId(event.target.value)}><option value="">{candidatesLoading ? 'Loading eligible technicians…' : 'Choose an eligible technician'}</option>{candidates.map(person => <option key={person.id} value={person.id}>{person.name} · {person.total}/{person.maxWorkload} active</option>)}</select>{!candidatesLoading && !candidates.length && <p>No eligible technicians currently available.</p>}</div>}
