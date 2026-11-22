@@ -243,7 +243,9 @@ public class IncidentService {
     public View resolve(Long id, Resolution request, String email) {
         User user = actor(email); Incident incident = editable(id, user, Role.TECHNICIAN);
         incident.resolve(request.summary(), request.steps());
-        return finish(incident, user, "RESOLVED", "Resolution: " + incident.getResolutionSummary() + "\nSteps: " + incident.getResolutionSteps());
+        View resolved = finish(incident, user, "RESOLVED", "Resolution: " + incident.getResolutionSummary() + "\nSteps: " + incident.getResolutionSteps());
+        notifyConfirmers(incident, user, "\"" + incident.getTitle() + "\" has been fixed. If it still affects you, please report it again.");
+        return resolved;
     }
     @Transactional
     public View verify(Long id, Verification request, String email) {
@@ -309,8 +311,11 @@ public class IncidentService {
         boolean admin = user.getRole() == Role.ADMIN;
         Incident incident = editable(id, user, admin ? Role.ADMIN : Role.STUDENT);
         incident.withdraw();
-        return finish(incident, user, admin ? "REJECTED" : "WITHDRAWN",
+        View closed = finish(incident, user, admin ? "REJECTED" : "WITHDRAWN",
                 (admin ? "Closed by the administrator without action: " : "Withdrawn by the reporter: ") + request.content().trim());
+        notifyConfirmers(incident, user, "\"" + incident.getTitle() + "\" was closed without action (" + (admin ? "by IT support" : "by the reporter")
+                + "). If you are still affected, please submit your own report.");
+        return closed;
     }
     /** AWAITING_INFO → IN_PROGRESS by the primary technician when no reply is needed any more; the SLA clock resumes. */
     @Transactional
@@ -318,6 +323,12 @@ public class IncidentService {
         User user = actor(email); Incident incident = editable(id, user, Role.TECHNICIAN);
         incident.informationReceived();
         return finish(incident, user, "WORK_RESUMED", "Technician resumed work without waiting for a reply.");
+    }
+    /** Students who confirmed this report cannot open it (it is someone else's), so they get a plain notification. */
+    private void notifyConfirmers(Incident incident, User actor, String message) {
+        java.util.Set<Long> confirmers = new java.util.LinkedHashSet<>(incidents.confirmerIds(incident.getId()));
+        if (confirmers.isEmpty()) return;
+        events.publishTo(incident.getId(), actor.getId(), "CONFIRMED_ISSUE_UPDATE", null, incident.getStatus().name(), message, confirmers);
     }
     private View finish(Incident incident, User actor, String action, String description) {
         incident.record(actor, action, description, STUDENT_VISIBLE);
@@ -355,6 +366,6 @@ public class IncidentService {
                 i.getCreatedAt(), i.getUpdatedAt(), i.getAcknowledgedAt(), i.getResolvedAt(), i.getVerifiedAt(), i.getClosedAt(),
                 i.getResolutionSummary(), i.getResolutionSteps(), notes, history, f == null ? null : new FeedbackView(f.getRating(), f.getComment(), f.getCreatedAt()),
                 user.getRole() == Role.TECHNICIAN && i.isPrimary(user.getId()), student ? List.of() : i.getCollaborators().stream()
-                    .map(c -> new TeamMember(person(c.getTechnician()), c.getResponsibility())).toList(), categories.suggest(i.getTitle(), i.getDescription()), i.getCriticality(), i.getResponseDeadline(), i.getResolutionDeadline(), i.responseSla(java.time.Instant.now()), i.resolutionSla(java.time.Instant.now()), i.isSlaPaused(), i.getSlaPausedSeconds(), i.getAffectedUsers(), i.getSlaFactor());
+                    .map(c -> new TeamMember(person(c.getTechnician()), c.getResponsibility())).toList(), categories.suggest(i.getTitle(), i.getDescription()), i.getCriticality(), i.getResponseDeadline(), i.getResolutionDeadline(), i.responseSla(java.time.Instant.now()), i.resolutionSla(java.time.Instant.now()), i.isSlaPaused(), i.getSlaPausedSeconds(), i.getAffectedUsers(), i.getSlaFactor(), i.getConfirmations());
     }
 }

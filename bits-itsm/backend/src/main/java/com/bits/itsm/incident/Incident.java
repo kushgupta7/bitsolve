@@ -32,12 +32,16 @@ public class Incident {
     public enum Level { LOW, MEDIUM, HIGH }
     public enum Priority { PENDING, P1, P2, P3, P4 }
     public enum ItService {
-        CAMPUS_WIFI("Campus Wi-Fi"), STUDENT_PORTAL("Student Portal"), LIBRARY("Library Services"),
-        LAB_COMPUTERS("Lab Computers"), EMAIL("Email Services"), CAMPUS_NETWORK("Campus Network"),
-        AUTHENTICATION("Authentication Service"), OTHER("Other");
+        CAMPUS_WIFI("Campus Wi-Fi", true), STUDENT_PORTAL("Student Portal", true), LIBRARY("Library Services", true),
+        LAB_COMPUTERS("Lab Computers", true), EMAIL("Email Services", false), CAMPUS_NETWORK("Campus Network", true),
+        AUTHENTICATION("Authentication Service", false), OTHER("Other", false);
         private final String label;
-        ItService(String label) { this.label = label; }
+        private final boolean shared;
+        ItService(String label, boolean shared) { this.label = label; this.shared = shared; }
         public String getLabel() { return label; }
+        /** Shared campus services affect many people at once, so other students may confirm ("me too") an open
+         *  incident on them. Personal services (e-mail, login) never show other people's reports. */
+        public boolean isShared() { return shared; }
     }
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
@@ -210,6 +214,13 @@ public class Incident {
     public void close() { require(IncidentStatus.VERIFIED); move(IncidentStatus.CLOSED); closedAt = updatedAt; }
     /** NEW → CLOSED without any work: a duplicate/invalid report (admin) or one withdrawn by its reporter. */
     public void withdraw() { require(IncidentStatus.NEW); move(IncidentStatus.CLOSED); closedAt = updatedAt; }
+    /** Number of other students who confirmed they are affected (a signal only; never changes priority). */
+    @Column(nullable = false) private int confirmations;
+    public int getConfirmations() { return confirmations; }
+    public void addConfirmation() {
+        if (!isOpen()) throw new IllegalStateException("This incident is no longer open.");
+        confirmations++;
+    }
     public boolean isOpen() { return status != IncidentStatus.RESOLVED && status != IncidentStatus.VERIFIED && status != IncidentStatus.CLOSED; }
     public void require(IncidentStatus expected) {
         if (status != expected) throw new InvalidStateTransitionException(status, expected, "This action requires " + expected + "; current status is " + status + ".");

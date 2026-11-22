@@ -72,6 +72,7 @@ public class NotificationService implements IncidentObserver {
                 to.addAll(admins);
             }
             case DUPLICATE_DETECTED, MAJOR_INCIDENT_DETECTED -> to.addAll(admins);
+            case CONFIRMED_ISSUE_UPDATE -> { } // only the confirming students passed in the event
         }
         if (e.actorId() != null) {
             to.remove(e.actorId());

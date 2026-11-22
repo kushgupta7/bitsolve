@@ -15,7 +15,9 @@ public enum EventType {
     INCIDENT_ESCALATED("Incident Escalated"),
     DUPLICATE_DETECTED("Duplicate Detected"),
     INFORMATION_REQUESTED("Information Requested"),
-    MAJOR_INCIDENT_DETECTED("Major Incident Detected");
+    MAJOR_INCIDENT_DETECTED("Major Incident Detected"),
+    /** For students who confirmed ("me too") someone else's report: it was resolved or closed. */
+    CONFIRMED_ISSUE_UPDATE("Update on an issue you confirmed");
 
     private final String label;
 

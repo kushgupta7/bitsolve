@@ -69,6 +69,10 @@ public final class NotificationFactory {
                 title = "Major incident detected";
                 message = detail;
             }
+            case CONFIRMED_ISSUE_UPDATE -> {
+                title = "Update on an issue you confirmed";
+                message = detail;
+            }
             case DUPLICATE_DETECTED -> {
                 title = "Possible duplicate incident";
                 message = detail;

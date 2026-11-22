@@ -15,7 +15,7 @@ import com.bits.itsm.assignment.AssignmentController;
  * {timestamp, status, code, message, path} body produced for BitsolveException by
  * {@link com.bits.itsm.exception.GlobalApiErrors}. The "message" field is unchanged for the React client.
  */
-@RestControllerAdvice(assignableTypes = {com.bits.itsm.api.AdminManagementController.class, com.bits.itsm.api.ServicesController.class, IncidentController.class, AssignmentController.class, SlaController.class, com.bits.itsm.priority.PriorityController.class, com.bits.itsm.api.InsightsController.class})
+@RestControllerAdvice(assignableTypes = {com.bits.itsm.api.AdminManagementController.class, com.bits.itsm.api.ServicesController.class, IncidentController.class, IncidentAssistController.class, AssignmentController.class, SlaController.class, com.bits.itsm.priority.PriorityController.class, com.bits.itsm.api.InsightsController.class})
 public class IncidentApiErrors {
     @ExceptionHandler(ResponseStatusException.class)
     ResponseEntity<ApiError> accessError(ResponseStatusException error, HttpServletRequest request) {

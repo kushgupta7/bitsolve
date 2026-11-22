@@ -26,6 +26,7 @@ class PostgresIncidentTests {
     }
     @Autowired com.bits.itsm.incident.CatalogService testCatalog;
     @Autowired MockMvc mvc;
+    @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
     @Autowired UserRepository users;
     @Autowired com.bits.itsm.support.IncidentLookup incidentLookup;
     final JsonMapper json = JsonMapper.builder().build();
@@ -194,5 +195,86 @@ class PostgresIncidentTests {
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"name\":\"Network Technician\",\"enabled\":false}"))
            .andExpect(status().isConflict());
         assertTrue(users.findByEmail(email("technician04")).orElseThrow().isEnabled());
+    }
+    JsonNode getApi(String name, String path, int status) throws Exception {
+        var result = mvc.perform(get("/api" + path).with(user(email(name)))).andExpect(status().is(status)).andReturn();
+        String body = result.getResponse().getContentAsString();
+        return body.isBlank() ? null : json.readTree(body);
+    }
+
+    @Test void meTooFindsTheOpenReportAndCountsEachStudentOnceWithoutChangingPriority() throws Exception {
+        long id = create();   // student01, Campus Wi-Fi: "Network problem" / "Campus network is unavailable in the library."
+        String query = "/incidents/similar-open?service=CAMPUS_WIFI&text=" + java.net.URLEncoder.encode("network unavailable in library", "UTF-8");
+        JsonNode found = getApi("student02", query, 200);
+        assertTrue(found.findValues("id").stream().anyMatch(n -> n.asLong() == id), "student02 is shown the open report");
+        assertTrue(found.toString().contains("\"title\"") && !found.toString().contains("reporter") && !found.toString().contains("description"),
+                "only title, status, time and count are shown");
+        assertTrue(getApi("student01", query, 200).findValues("id").stream().noneMatch(n -> n.asLong() == id), "never your own report");
+        assertEquals(0, getApi("student02", "/incidents/similar-open?service=EMAIL&text=network+unavailable+library", 200).size(), "personal services never show others' reports");
+
+        JsonNode first = postAs("student02", "/" + id + "/confirm", Map.of(), 200);
+        assertEquals(1, first.get("confirmations").asInt());
+        assertTrue(first.get("confirmedByYou").asBoolean());
+        assertEquals(1, postAs("student02", "/" + id + "/confirm", Map.of(), 200).get("confirmations").asInt(), "a second click does not count again");
+        assertEquals(2, postAs("student03", "/" + id + "/confirm", Map.of(), 200).get("confirmations").asInt());
+        postAs("student01", "/" + id + "/confirm", Map.of(), 409);       // the reporter
+        postAs("technician04", "/" + id + "/confirm", Map.of(), 403);    // students only
+
+        JsonNode incident = getAs("admin01", "/" + id, 200);
+        assertEquals(2, incident.get("confirmations").asInt(), "the administrator sees the count");
+        postAs("admin01", "/" + id + "/classify", Map.of("category", "NETWORK", "impact", "LOW", "urgency", "LOW"), 200);
+        JsonNode classified = getAs("admin01", "/" + id, 200);
+        long control = create();
+        postAs("admin01", "/" + control + "/classify", Map.of("category", "NETWORK", "impact", "LOW", "urgency", "LOW"), 200);
+        assertEquals(getAs("admin01", "/" + control, 200).get("priority").asText(), classified.get("priority").asText(), "confirmations never change priority");
+    }
+
+    @Test void confirmersAreToldWhenTheIssueIsFixedAndPersonalOrClosedIssuesCannotBeConfirmed() throws Exception {
+        long id = create();
+        postAs("student02", "/" + id + "/confirm", Map.of(), 200);
+        investigate(id);
+        resolve(id);
+        JsonNode inbox = getApi("student02", "/notifications", 200);
+        boolean told = false;
+        for (JsonNode n : inbox) told |= "CONFIRMED_ISSUE_UPDATE".equals(n.get("type").asText()) && n.get("incidentId").asLong() == id;
+        assertTrue(told, "the confirming student is notified of the fix");
+        postAs("student03", "/" + id + "/confirm", Map.of(), 409);       // no longer open
+
+        var personal = new java.util.HashMap<String, Object>(payload());
+        personal.put("affectedService", "EMAIL"); personal.put("category", "APPLICATION");
+        long email = postAs("student01", "", personal, 201).get("id").asLong();
+        postAs("student02", "/" + email + "/confirm", Map.of(), 409);
+    }
+
+    @Test void urgencyHintIsForTheAdminOnlyAndOnlyBeforeClassification() throws Exception {
+        var urgent = new java.util.HashMap<String, Object>(payload());
+        urgent.put("title", "Portal down before the exam");
+        urgent.put("description", "Nobody in the whole hostel can log in to submit the exam assignment due today.");
+        long id = postAs("student01", "", urgent, 201).get("id").asLong();
+        JsonNode hint = getApi("admin01", "/admin/incidents/" + id + "/urgency-hint", 200);
+        assertTrue(hint.get("available").asBoolean());
+        assertEquals("HIGH", hint.get("level").asText());
+        assertTrue(hint.get("reasons").size() >= 2);
+        getApi("student01", "/admin/incidents/" + id + "/urgency-hint", 403);
+        postAs("admin01", "/" + id + "/classify", Map.of("category", "NETWORK", "impact", "HIGH", "urgency", "HIGH"), 200);
+        assertFalse(getApi("admin01", "/admin/incidents/" + id + "/urgency-hint", 200).get("available").asBoolean());
+    }
+
+    @Test void resolutionEstimateUsesHistoryAndRespectsAccess() throws Exception {
+        long id = create(); assign(id);
+        String priority = getAs("admin01", "/" + id, 200).get("priority").asText();
+        // Five resolved incidents of the same category and priority, 1–5 hours each.
+        long reporter = users.findByEmail(email("student01")).orElseThrow().getId();
+        for (int h = 1; h <= 5; h++) {
+            jdbc.update("insert into incidents(title, description, reporter_id, category, affected_service, impact, urgency, priority, status, created_at, updated_at, resolved_at, closed_at, confirmations) "
+                    + "values ('History', 'Resolved network incident for the estimate.', ?, 'NETWORK', 'CAMPUS_WIFI', 'LOW', 'LOW', ?, 'CLOSED', now() - make_interval(hours => ?), now(), now(), now(), 0)",
+                    reporter, priority, h + 1);
+        }
+        JsonNode estimate = getApi("student01", "/incidents/" + id + "/resolution-estimate", 200);
+        assertTrue(estimate.get("available").asBoolean());
+        assertTrue(estimate.get("basedOn").asInt() >= 5);
+        assertTrue(estimate.get("usuallyWithinMinutes").asLong() >= estimate.get("typicalMinutes").asLong());
+        getApi("student02", "/incidents/" + id + "/resolution-estimate", 403);   // not their incident
+        assertFalse(getApi("student01", "/incidents/" + create() + "/resolution-estimate", 200).get("available").asBoolean(), "NEW incidents have no priority yet");
     }
 }

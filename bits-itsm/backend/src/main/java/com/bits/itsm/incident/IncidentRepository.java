@@ -11,6 +11,10 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findByReporterIdOrderByCreatedAtDesc(Long reporterId);
     List<Incident> findByAssignedTechnicianIdOrderByCreatedAtDesc(Long technicianId);
     List<Incident> findAllByOrderByCreatedAtDesc();
+    /** Students who confirmed ("me too") an incident; they are told when it is resolved or closed without action. */
+    @Query(value = "select student_id from incident_confirmations where incident_id = ?1", nativeQuery = true)
+    List<Long> confirmerIds(Long id);
+    List<Incident> findByAffectedServiceAndCreatedAtAfterOrderByCreatedAtDesc(Incident.ItService service, java.time.Instant after);
     List<Incident> findByStatusInAndUpdatedAtBefore(java.util.Collection<IncidentStatus> statuses, java.time.Instant cutoff);
     @Query("select distinct i from Incident i left join i.collaborators c where i.assignedTechnician.id = :id or c.technician.id = :id order by i.createdAt desc")
     List<Incident> findTeamIncidents(Long id);
