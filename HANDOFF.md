@@ -109,6 +109,21 @@ The project lives in the `bits-itsm/` subfolder. The repo root has `README.md`, 
 - **Other UI changes:** the "Signed in as" band is now a compact sign-out row, and long guidance text was shortened.
 - **CI:** `bits-itsm/scripts/smoke_flow.py` runs the main workflow end to end against the Docker app: report, classify+assign, start, transfer candidates, availability, resolve, verify.
 
+## 4b. Practicality pass (22 Nov, morning)
+- **NEW reports:** the student can withdraw one (with a reason) and the admin can close one as a duplicate or invalid. Both use `POST /api/incidents/{id}/withdraw` and NEW → CLOSED (`NewState`); these incidents have no resolution and are not counted as open.
+- **AWAITING_INFO:** the primary technician can **Resume without reply** (`POST /{id}/resume`), so an incident is no longer stuck if the student never answers.
+- **Disabling technicians:** a technician who still owns open incidents can't be disabled (409, "Reassign them first").
+- **Passwords:**
+  - Users change their own password on Profile (`POST /api/auth/password`).
+  - The admin can reset one in Users & Technicians.
+  - One `PasswordPolicy` (12+ characters, not the e-mail name) applies everywhere; admin-created accounts used to allow 8 characters.
+  - The login page says to ask the admin for a reset.
+- **Dashboards:**
+  - Admin: "Classify now" opens All Incidents filtered to NEW; "N verified ready to close" opens a VERIFIED filter.
+  - Technician: "N new assignments waiting for you to start", and a note when they go Busy/Unavailable while still owning open incidents.
+- **Report form:** after submitting, it offers "View my incidents".
+- **Tests:** TC60–TC64 added; `smoke_flow.py` now also covers the information request + resume and a withdrawn report.
+
 ## 5. Demo-only configuration (important)
 - `DemoUserSeeder`: 9 accounts. `DemoIncidentSeeder`: 60 incidents over 30 days. Both run only with profile `dev` and `bitsolve.demo.seed-enabled=true`.
 - **`DemoShowcaseSeeder`** (new; `BITSOLVE_DEMO_SHOWCASE=true` is set in docker-compose):

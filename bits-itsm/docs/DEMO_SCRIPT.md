@@ -28,7 +28,8 @@ Each member: name, role, the module they own (see TEAM.md). [NAME1] states the p
 4. Wait for the 80 % mark: an **SLA warning** notification appears (P2/P1 demo policy).
 5. *Provide Resolution* (summary + steps) → **Resolved**; the student gets an in-app notification and an e-mail in MailHog.
 6. **student01** → *Verify* → *Feedback 5/5*. **admin01** → *Close Incident*. Show the incident history timeline (who did what, when) and the admin *Audit Logs* page.
-7. [NAME2] tries an illegal action (e.g. student calls close via the API, or close on a NEW incident) and shows the JSON error `{"code":"INVALID_STATE_TRANSITION", …}`.
+7. Practical exits: a student can **Withdraw** a NEW report (with a reason); the admin can **Close as duplicate or invalid**; a technician waiting for a reply can **Resume without reply**. Everyone can change their password on *Profile*; the admin can reset one in *Users & Technicians*.
+8. [NAME2] tries an illegal action (e.g. student calls close via the API, or close on a NEW incident) and shows the JSON error `{"code":"INVALID_STATE_TRANSITION", …}`.
 
 ## 11:00 – 16:00 · Workflow 3: similar reports → duplicates + major incident → P1 escalation ([NAME4], [NAME3])
 1. Using student01, student02 and student03, report three Wi-Fi problems within a minute, all with service *Campus Wi-Fi* and category *Network* (duplicate detection compares incidents with the same service and category) ("Wi-Fi not working in hostel", "Wireless down in Ram Bhawan", "Cannot connect to campus Wi-Fi in hostel").

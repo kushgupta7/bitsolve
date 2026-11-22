@@ -14,10 +14,11 @@ const previewDropdowns = [
   { name: 'affectedService', label: 'Affected Service', options: [...services.map((service) => service.name), 'Other'].map((label) => ({ value: label, label })) },
 ];
 
-export default function ReportIncident({ onCancel, live = false }) {
+export default function ReportIncident({ onCancel, live = false, onViewIncidents }) {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
   const [validated, setValidated] = useState(false);
+  const [savedId, setSavedId] = useState(null);
   const [options, setOptions] = useState(null);
   const [message, setMessage] = useState('');
   // One key per report: a double click or network retry re-sends the same key and the server rejects the duplicate.
@@ -78,7 +79,8 @@ export default function ReportIncident({ onCancel, live = false }) {
     setBusy(true); setMessage('');
     try {
       const saved = await apiPost('incidents', { ...form, title, description, affectedUsers: form.affectedUsers === '' ? null : Number(form.affectedUsers) }, 'POST', { 'Idempotency-Key': submissionKey });
-      setMessage(`Incident ${saved.id} saved successfully. Status: ${readableLabel(saved.status)}.`);
+      setMessage(`Incident ${saved.id} submitted. IT support will review it shortly; you'll be notified of every update.`);
+      setSavedId(saved.id);
       setForm(emptyForm);
       setSubmissionKey(newSubmissionKey());
       setValidated(true);
@@ -152,6 +154,7 @@ export default function ReportIncident({ onCancel, live = false }) {
           <button className="report-clear" type="button" onClick={onCancel}>Back to Dashboard</button>
         </div>
         <p className="status-message" role="status" aria-hidden={live ? !message : !validated}>{live ? message : validationNotice}</p>
+        {live && savedId && onViewIncidents && <div className="report-actions"><button type="button" className="incident-view" onClick={() => onViewIncidents(savedId)}>View my incidents</button></div>}
       </form>
     </section>
   );

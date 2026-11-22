@@ -27,14 +27,14 @@ const AVAILABILITY = [['AVAILABLE', 'Available', 'Receives new assignments'], ['
 
 /** Technician self-service availability (Available / Busy / Unavailable), stored in Java and respected by every assignment strategy. */
 export function AvailabilityStatus() {
-  const [state, setState] = useState({ value: null, saving: false, error: '' });
-  useEffect(() => { let a = true; apiRequest('technician/workload').then(w => { if (a) setState(s => ({ ...s, value: w.availability })); }).catch(() => {}); return () => { a = false; }; }, []);
+  const [state, setState] = useState({ value: null, saving: false, error: '', active: 0 });
+  useEffect(() => { let a = true; apiRequest('technician/workload').then(w => { if (a) setState(s => ({ ...s, value: w.availability, active: w.total })); }).catch(() => {}); return () => { a = false; }; }, []);
   if (!state.value) return null;
   const choose = (value) => {
     if (value === state.value || state.saving) return;
     setState(s => ({ ...s, saving: true, error: '' }));
     apiSend('technician/availability', { availability: value }, 'PUT')
-      .then(w => setState({ value: w.availability, saving: false, error: '' }))
+      .then(w => setState({ value: w.availability, saving: false, error: '', active: w.total }))
       .catch(error => setState(s => ({ ...s, saving: false, error: error.message })));
   };
   return <section className="dashboard-incidents admin-section home-panel" aria-label="Availability status">
@@ -46,6 +46,7 @@ export function AvailabilityStatus() {
           <span className="availability-dot" aria-hidden="true" /><strong>{label}</strong><small>{hint}</small></button>)}
       </div>
       {state.error && <p className="report-error" role="alert">{state.error}</p>}
+      {state.value !== 'AVAILABLE' && state.active > 0 && <p className="report-guidance" role="status">You still own {state.active} open incident{state.active === 1 ? '' : 's'}. {state.value === 'UNAVAILABLE' ? 'If you will be away, request a transfer so they keep moving.' : 'They stay with you; you just get no new ones.'}</p>}
     </div>
   </section>;
 }
@@ -53,13 +54,16 @@ export function AvailabilityStatus() {
 /** Technician home: availability, then own incidents ranked by predicted SLA risk. */
 export function TechnicianFocus({ onOpenIncidents }) {
   const [risk, setRisk] = useState(null);
+  const [toStart, setToStart] = useState(0);
   useEffect(() => { let a = true; apiRequest('technician/sla-risk').then(d => { if (a) setRisk(d); }).catch(() => { if (a) setRisk([]); }); return () => { a = false; }; }, []);
+  useEffect(() => { let a = true; apiRequest('incidents').then(list => { if (a) setToStart(list.filter(i => i.status === 'ASSIGNED' || i.status === 'ACKNOWLEDGED').length); }).catch(() => {}); return () => { a = false; }; }, []);
   return <>
+    {toStart > 0 && <section className="dashboard-incidents admin-section home-panel" aria-label="New assignments"><div className="dashboard-section-heading"><h2>{toStart} new assignment{toStart === 1 ? '' : 's'} waiting for you to start</h2>{onOpenIncidents && <button className="incident-view" onClick={onOpenIncidents}>Open my incidents</button>}</div></section>}
     <AvailabilityStatus />
     {risk && <section className="dashboard-incidents admin-section home-panel" aria-label="Your SLA focus">
       <div className="dashboard-section-heading"><h2>Work on these first</h2><span>Predicted SLA risk</span></div>
       <div className="insights-body"><RiskList items={risk.filter(r => r.level !== 'LOW').slice(0, 4)} empty="Nothing at risk. All your open incidents are on track." />
-        {onOpenIncidents && <div className="report-actions"><button type="button" className="incident-view" onClick={onOpenIncidents}>Open my incidents</button></div>}</div>
+        {onOpenIncidents && !toStart && <div className="report-actions"><button type="button" className="incident-view" onClick={onOpenIncidents}>Open my incidents</button></div>}</div>
     </section>}
   </>;
 }

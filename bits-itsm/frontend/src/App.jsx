@@ -173,6 +173,7 @@ function LoginPage({ onLogin, initialMessage }) {
 
               <button className="submit-button" type="submit" disabled={submitting}>{submitting ? 'Signing in…' : 'Sign In'} <span aria-hidden="true">→</span></button>
               <p className="status-message" role="status" aria-hidden={!message}>{message || loginNotice}</p>
+              <p className="auth-switch">Forgot your password? Ask the campus IT administrator to reset it.</p>
               {registrationOpen && <p className="auth-switch">New student? <button type="button" className="link-button" onClick={() => { setMode('register'); setMessage(''); }}>Create an account</button></p>}
             </form>}
 
