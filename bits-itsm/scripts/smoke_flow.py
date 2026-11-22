@@ -1,7 +1,7 @@
 """End-to-end check of the main workflow against a running BITSolve (used by CI after `docker compose up`).
 
 student reports (no impact/urgency) -> admin classifies with impact/urgency and auto-assigns
--> technician starts work (acknowledge + start) -> transfer has someone to pick -> resolve -> student verifies.
+-> technician starts work (acknowledge + start) -> info request + resume -> transfer has someone to pick -> resolve -> student verifies; a mistaken report is withdrawn.
 Usage: python3 smoke_flow.py [base_url]
 """
 import http.cookiejar
@@ -65,6 +65,12 @@ started = technician.call("POST", f"/api/incidents/{incident_id}/start", {})
 assert started["status"] == "IN_PROGRESS", started["status"]
 step("technician started work (acknowledge + start)")
 
+asked = technician.call("POST", f"/api/incidents/{incident_id}/information", {"content": "Which SSID are you on?"})
+assert asked["status"] == "AWAITING_INFO", asked["status"]
+resumed = technician.call("POST", f"/api/incidents/{incident_id}/resume", {})
+assert resumed["status"] == "IN_PROGRESS", resumed["status"]
+step("technician asked for information, then resumed without a reply")
+
 candidates = technician.call("GET", f"/api/incidents/{incident_id}/eligible-technicians")
 assert candidates, "transfer dropdown would be empty"
 step(f"transfer can go to {len(candidates)} other qualified technician(s)")
@@ -79,4 +85,11 @@ assert resolved["status"] == "RESOLVED", resolved["status"]
 verified = student.call("POST", f"/api/incidents/{incident_id}/verify", {"confirmed": True})
 assert verified["status"] == "VERIFIED", verified["status"]
 step("technician resolved and student verified")
+mistake = student.call("POST", "/api/incidents", {
+    "title": "Smoke test: projector not working",
+    "description": "The projector in room F-102 shows no signal from the HDMI cable at all.",
+    "category": "HARDWARE", "affectedService": "LAB_COMPUTERS"})
+withdrawn = student.call("POST", f"/api/incidents/{mistake['id']}/withdraw", {"content": "Reported by mistake"})
+assert withdrawn["status"] == "CLOSED" and withdrawn["resolvedAt"] is None, withdrawn["status"]
+step("student withdrew a report made by mistake")
 print("Workflow smoke test passed.")

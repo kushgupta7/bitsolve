@@ -9,7 +9,7 @@
 | ID | Description | Category | Preconditions | Input | Expected result | Actual | Automated test |
 |---|---|---|---|---|---|---|---|
 | TC01 | Full lifecycle NEW→…→CLOSED records timestamps | Normal | Classified network incident, available tech | classify, assign, ack, start, resolve, verify, close | Status CLOSED; ack/resolved/verified/closed times set | Pass | `IncidentWorkflowTests.completesOrderedLifecycleAndTimestamps` |
-| TC02 | NEW → CLOSED is rejected | Business rule / exception | NEW incident | `close()` | `InvalidStateTransitionException`, status stays NEW | Pass | `IncidentStateMachineTest.newToClosedIsRejectedOnTheEntity` |
+| TC02 | Regular close on a NEW incident is rejected | Business rule / exception | NEW incident | `close()` | `InvalidStateTransitionException`, status stays NEW (a NEW report can only be withdrawn/rejected with a reason) | Pass | `IncidentStateMachineTest.regularCloseOnANewIncidentIsRejected` |
 | TC03 | All 71 illegal edges rejected, 10 legal edges accepted | Business rule | – | every (from,to) pair | exactly the documented edges succeed; others → 409 code `INVALID_STATE_TRANSITION` | Pass | `IncidentStateMachineTest.everyEdgeNotInTheTableIsRejectedWithInvalidStateTransition` |
 | TC04 | Each state allows only its actors | Authorization | – | 12 (from,to,actor) combinations | allowed / `UnauthorizedOperationException` | Pass | `IncidentStateMachineTest.eachStateDecidesWhichActorsMayMoveIt` |
 | TC05 | AWAITING_INFO pauses SLA and extends deadline by the pause | Business rule | P1 incident IN_PROGRESS | request info, reply 600 s later | deadline +600 s, pausedSeconds = 600 | Pass | `IncidentStateMachineTest.awaitingInfoPausesTheResolutionClockAndExtendsTheDeadlineByThePause` |
@@ -67,6 +67,9 @@
 | TC57 | Availability rules on the entity | Boundary | new technician | BUSY, UNAVAILABLE, null | only AVAILABLE is eligible; null rejected, status unchanged | Pass | `TechnicianAvailabilityTest` |
 | TC58 | Assessment only before classification | Boundary | NEW incident | assess(HIGH, null), classify, assess again | impact HIGH, urgency kept MEDIUM; second assessment rejected | Pass | `IncidentWorkflowTests.adminAssessmentReplacesProvisionalImpactAndUrgencyOnlyBeforeClassification` |
 | TC59 | Demo setup leaves no empty dropdown | Normal | showcase configuration | every service, skill and category | each service has a criticality; each skill held by ≥2 technicians | Pass | `DemoShowcaseSeederTest` |
+| TC60 | Withdraw / reject a NEW report | Normal + business rule | NEW incidents | student withdraws; admin rejects duplicate; technician tries; withdraw again | CLOSED without resolution; technician 403; second withdraw 409 | Pass | `PostgresIncidentTests.reporterWithdrawsAdminRejectsDuplicateAndTechnicianResumesWithoutReply`, `IncidentWorkflowTests.newReportCanBeWithdrawnOrRejectedButNothingLaterCan` |
+| TC61 | Technician resumes without a reply | Normal | AWAITING_INFO | technician `resume`; student `resume` | IN_PROGRESS, SLA clock resumes; student 403 | Pass | same Postgres test |
+| TC62 | Technician with open work cannot be disabled | Business rule | technician04 owns an open incident | admin disables the account | 409, account stays enabled | Pass | `PostgresIncidentTests.technicianWithOpenIncidentsCannotBeDisabled` |
 
 Postgres* tests run only with `BITSOLVE_DB_TESTS=true` against a disposable PostgreSQL database.
 

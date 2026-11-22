@@ -7,7 +7,8 @@ import static com.bits.itsm.incident.state.LifecycleActor.*;
 final class AwaitingInfoState extends AbstractIncidentState {
     AwaitingInfoState() {
         super(IncidentStatus.AWAITING_INFO);
-        allow(IncidentStatus.IN_PROGRESS, STUDENT);
+        // The reporter replies, or the technician resumes without a reply (answer arrived another way, or none is coming).
+        allow(IncidentStatus.IN_PROGRESS, STUDENT, TECHNICIAN);
     }
     /** The defining behaviour of this state: time spent waiting for the reporter is not charged to IT. */
     @Override public boolean slaClockRunning() { return false; }

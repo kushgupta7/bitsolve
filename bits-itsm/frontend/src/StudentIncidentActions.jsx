@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { auditLogs, investigationNotes, studentResponses, supportRequests, users } from './demoData.js';
+import ReasonAction from './ReasonAction.jsx';
 
 function DraftForm({ kind, incident, onAction }) {
   const [values, setValues] = useState({});
@@ -91,6 +92,7 @@ function EditReport({ incident, onAction }) {
 export default function StudentIncidentActions({ incident, onAction }) {
   if (onAction) return <>
     {incident.status === 'NEW' && <EditReport key={incident.id} incident={incident} onAction={onAction} />}
+    {incident.status === 'NEW' && <ReasonAction id={`withdraw-${incident.id}`} label="Withdraw this report" prompt="Why are you withdrawing it?" placeholder="e.g. It started working again / reported by mistake" confirmLabel="Withdraw report" onConfirm={reason => onAction('withdraw', { content: reason })} />}
     <section className="student-detail-section"><h3>Support Communication</h3>
       {incident.notes.length ? <ol className="technician-updates">{incident.notes.map(note => <li key={note.id}><strong>{note.author.name}</strong> · <time dateTime={note.createdAt}>{new Date(note.createdAt).toLocaleString()}</time><p>{note.content}</p></li>)}</ol> : <p>No support messages yet.</p>}
       {incident.status === 'AWAITING_INFO' && <p role="status"><strong>The technician needs more information.</strong> The SLA clock is paused until you reply.</p>}
@@ -98,7 +100,7 @@ export default function StudentIncidentActions({ incident, onAction }) {
       {['NEW', 'CLASSIFIED', 'ASSIGNED', 'ACKNOWLEDGED', 'IN_PROGRESS'].includes(incident.status) && <><h4 className="add-info-heading">Add information</h4><p className="report-guidance">Anything new (an error code, another room affected)? Add it here; your technician is notified.</p><DraftForm key={`info-${incident.updatedAt}`} kind="information" incident={incident} onAction={onAction} /></>}
     </section>
     {incident.status === 'RESOLVED' && <section className="student-detail-section"><h3>Resolution Verification</h3><p>{incident.resolutionSummary}</p><p>{incident.resolutionSteps}</p><DraftForm kind="verification" incident={incident} onAction={onAction} /></section>}
-    {['VERIFIED', 'CLOSED'].includes(incident.status) && <section className="student-detail-section"><h3>Support Feedback</h3>{incident.feedback ? <p>Rating: {incident.feedback.rating}/5 · {incident.feedback.comment || 'No comment'}</p> : <DraftForm kind="feedback" incident={incident} onAction={onAction} />}</section>}
+    {['VERIFIED', 'CLOSED'].includes(incident.status) && incident.resolvedAt && <section className="student-detail-section"><h3>Support Feedback</h3>{incident.feedback ? <p>Rating: {incident.feedback.rating}/5 · {incident.feedback.comment || 'No comment'}</p> : <DraftForm kind="feedback" incident={incident} onAction={onAction} />}</section>}
   </>;
   const history = auditLogs.filter((event) => event.incidentId === incident.id && ['Incident Created', 'Technician Assigned', 'Incident Acknowledged', 'Incident Resolved', 'Incident Verified', 'Incident Closed'].includes(event.action));
   const notes = investigationNotes.filter((note) => note.incidentId === incident.id && note.visibility === 'STUDENT_VISIBLE');

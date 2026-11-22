@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import MyIncidents from './MyIncidents.jsx';
 import { apiRequest, apiPost } from './api.js';
 
-export default function LiveIncidents({ role, team = false, initialIncidentId }) {
+export default function LiveIncidents({ role, team = false, initialIncidentId, initialFilters }) {
   const [incidents, setIncidents] = useState([]);
   const [options, setOptions] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +30,6 @@ export default function LiveIncidents({ role, team = false, initialIncidentId })
 
   return <>
     <div className="report-actions"><button className="report-clear" disabled={loading} onClick={() => setRefresh(value => value + 1)}>Refresh Incidents</button></div>
-    {loading ? <p role="status">Loading incidents…</p> : error ? <p className="report-error" role="alert">{error}</p> : <MyIncidents initialIncidentId={initialIncidentId} incidents={incidents} liveRole={role} team={team} options={options} onAction={action} />}
+    {loading ? <p role="status">Loading incidents…</p> : error ? <p className="report-error" role="alert">{error}</p> : <MyIncidents initialFilters={initialFilters} initialIncidentId={initialIncidentId} incidents={incidents} liveRole={role} team={team} options={options} onAction={action} />}
   </>;
 }

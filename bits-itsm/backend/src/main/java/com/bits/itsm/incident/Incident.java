@@ -208,6 +208,9 @@ public class Incident {
         resolutionSummary = null; resolutionSteps = null; resolvedAt = null;
     }
     public void close() { require(IncidentStatus.VERIFIED); move(IncidentStatus.CLOSED); closedAt = updatedAt; }
+    /** NEW → CLOSED without any work: a duplicate/invalid report (admin) or one withdrawn by its reporter. */
+    public void withdraw() { require(IncidentStatus.NEW); move(IncidentStatus.CLOSED); closedAt = updatedAt; }
+    public boolean isOpen() { return status != IncidentStatus.RESOLVED && status != IncidentStatus.VERIFIED && status != IncidentStatus.CLOSED; }
     public void require(IncidentStatus expected) {
         if (status != expected) throw new InvalidStateTransitionException(status, expected, "This action requires " + expected + "; current status is " + status + ".");
     }

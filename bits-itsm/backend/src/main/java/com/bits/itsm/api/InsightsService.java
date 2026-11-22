@@ -121,8 +121,8 @@ public class InsightsService {
         actor(email, Role.ADMIN);
         Instant now = Instant.now();
         List<Incident> all = incidents.findAll();
-        long open = all.stream().filter(i -> i.getResolvedAt() == null).count();
-        long critical = all.stream().filter(i -> i.getPriority() == Incident.Priority.P1 && i.getResolvedAt() == null).count();
+        long open = all.stream().filter(Incident::isOpen).count();
+        long critical = all.stream().filter(i -> i.getPriority() == Incident.Priority.P1 && i.isOpen()).count();
         long resolved = all.size() - open;
         long violations = all.stream().filter(i -> i.responseSla(now) == SlaClock.Status.BREACHED || i.resolutionSla(now) == SlaClock.Status.BREACHED).count();
         List<Incident> measured = all.stream().filter(i -> i.getResolutionDeadline() != null && i.getResolvedAt() != null).toList();

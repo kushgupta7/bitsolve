@@ -549,7 +549,8 @@ export default function AdminDashboard({ sessionUser, sessionNotice }) {
     if (!dialog.current.open) dialog.current.showModal();
   }
   function close() { dialog.current.close(); }
-  function navigate(nextPage) { if (dialog.current.open) close(); setPage(nextPage); if (window.matchMedia('(max-width: 700px)').matches) setIsMenuOpen(false); }
+  const [incidentFilter, setIncidentFilter] = useState(null); // e.g. { status: 'NEW' } when coming from the dashboard
+  function navigate(nextPage, filter = null) { if (dialog.current.open) close(); setIncidentFilter(filter); setPage(nextPage); if (window.matchMedia('(max-width: 700px)').matches) setIsMenuOpen(false); }
 
   let content;
   switch (page) {
@@ -578,7 +579,7 @@ export default function AdminDashboard({ sessionUser, sessionNotice }) {
   if (sessionUser && page === 'Audit Logs') content = <><AdminManagement key="audit" page="Audit Logs" /><AdminManagement key="escalations" page="Escalations" /></>;
   if (sessionUser && page === 'Notifications') content = <Notifications live role="ADMIN" />;
   if (page === 'Insights & Analytics') content = sessionUser ? <><Suspense fallback={<p role="status">Loading charts…</p>}><Insights /></Suspense><AdminManagement key="reports" page="Reports & Analytics" /></> : <section className="report-form"><h2>Sign in required</h2><p>Insights are computed by the Java backend from live data.</p></section>;
-  if (sessionUser && page === 'All Incidents') content = <LiveIncidents role="ADMIN" />;
+  if (sessionUser && page === 'All Incidents') content = <LiveIncidents key={JSON.stringify(incidentFilter)} role="ADMIN" initialFilters={incidentFilter || undefined} />;
   if (sessionUser && page === 'Dashboard') content = <AdminHome onNavigate={navigate} />;
   const assignmentPages = { 'Assignment Strategies': 'strategy' };
   if (sessionUser && assignmentPages[page]) content = <AssignmentManagement key={page} mode={assignmentPages[page]} role="ADMIN" userId={sessionUser.id} />;

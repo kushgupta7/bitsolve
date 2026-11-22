@@ -50,8 +50,8 @@ export function overallSla(incident) {
 }
 const technicianName = (incident) => typeof incident.assignedTechnician === 'string' ? incident.assignedTechnician : incident.assignedTechnician?.name || '';
 
-export default function MyIncidents({ incidents, initialIncidentId, liveRole, team, options, onAction }) {
-  const [filters, setFilters] = useState(emptyFilters);
+export default function MyIncidents({ incidents, initialIncidentId, initialFilters, liveRole, team, options, onAction }) {
+  const [filters, setFilters] = useState(() => ({ ...emptyFilters, ...initialFilters }));
   const [selectedIncident, setSelectedIncident] = useState(null);
   const detailsDialog = useRef(null);
   const [detailError, setDetailError] = useState('');

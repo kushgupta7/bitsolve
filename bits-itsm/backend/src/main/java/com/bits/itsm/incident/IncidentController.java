@@ -37,6 +37,8 @@ public class IncidentController {
     @PostMapping("/{id}/reply") public View reply(@PathVariable Long id, @Valid @RequestBody Message request, Authentication auth) { return service.information(id, request, auth.getName(), true); }
     @PostMapping("/{id}/resolve") public View resolve(@PathVariable Long id, @Valid @RequestBody Resolution request, Authentication auth) { return service.resolve(id, request, auth.getName()); }
     @PostMapping("/{id}/verify") public View verify(@PathVariable Long id, @Valid @RequestBody Verification request, Authentication auth) { return service.verify(id, request, auth.getName()); }
+    @PostMapping("/{id}/withdraw") public View withdraw(@PathVariable Long id, @Valid @RequestBody Message request, Authentication auth) { return service.withdraw(id, request, auth.getName()); }
+    @PostMapping("/{id}/resume") public View resume(@PathVariable Long id, Authentication auth) { return service.resume(id, auth.getName()); }
     @PostMapping("/{id}/close") public View close(@PathVariable Long id, Authentication auth) { return service.close(id, auth.getName()); }
     @PostMapping("/{id}/feedback") public View feedback(@PathVariable Long id, @Valid @RequestBody Feedback request, Authentication auth) { return service.feedback(id, request, auth.getName()); }
 

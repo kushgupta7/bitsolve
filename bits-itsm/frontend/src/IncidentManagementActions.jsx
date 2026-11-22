@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import TechnicianOperations, { operationLabels } from './pages/TechnicianOperations.jsx';
 import { apiRequest } from './api.js';
 import { Recommendations } from './IncidentAssist.jsx';
+import ReasonAction from './ReasonAction.jsx';
 
 const LEVELS = [['LOW', 'Low'], ['MEDIUM', 'Medium'], ['HIGH', 'High']];
 const IMPACT_HINTS = { LOW: 'one person', MEDIUM: 'several people or a group', HIGH: 'a whole service or many people' };
@@ -50,6 +51,13 @@ export default function IncidentManagementActions({ incident, role, options, onA
     } catch (error) { setError(error.message); }
     finally { setBusy(false); }
   }
+  async function resumeWork() {
+    if (busy) return;
+    setBusy(true); setError(''); setMessage('');
+    try { await onAction('resume', {}); setMessage('Work resumed; the SLA clock is running again.'); }
+    catch (error) { setError(error.message); }
+    finally { setBusy(false); }
+  }
   // Acknowledging (response SLA) and starting are separate states, but one click for the technician.
   async function startWork() {
     if (busy) return;
@@ -79,6 +87,8 @@ export default function IncidentManagementActions({ incident, role, options, onA
     </form>}
     {role === 'TECHNICIAN' && <div className="report-actions">{incident.primaryOwner && ['ASSIGNED', 'ACKNOWLEDGED'].includes(incident.status) && <button className="incident-view" disabled={busy} onClick={startWork}>{busy ? 'Starting…' : 'Start Work'}</button>}{(incident.primaryOwner ? [...(incident.status === 'IN_PROGRESS' ? ['note', 'information', 'resolution'] : incident.status === 'AWAITING_INFO' ? ['note'] : []), ...(['ASSIGNED', 'ACKNOWLEDGED', 'IN_PROGRESS', 'AWAITING_INFO'].includes(incident.status) ? ['transfer', 'collaboration'] : [])] : ['IN_PROGRESS', 'AWAITING_INFO'].includes(incident.status) ? ['note'] : []).map(action => <button className="incident-view" key={action} onClick={() => setAction(action)}>{operationLabels[action]}</button>)}</div>}
     {role === 'TECHNICIAN' && incident.status === 'AWAITING_INFO' && <p role="status">Waiting for the reporter's reply. The resolution SLA clock is paused.</p>}
+    {role === 'TECHNICIAN' && incident.primaryOwner && incident.status === 'AWAITING_INFO' && <div className="report-actions"><button className="incident-view" disabled={busy} onClick={resumeWork}>Resume without reply</button></div>}
+    {role === 'ADMIN' && incident.status === 'NEW' && <ReasonAction id={`reject-${incident.id}`} label="Close as duplicate or invalid" prompt="Reason (the reporter sees this)" placeholder="e.g. Duplicate of incident 1047, already being fixed" confirmLabel="Close without action" onConfirm={reason => onAction('withdraw', { content: reason })} />}
     {error && <p className="report-error" role="alert">{error}</p>}{message && <p role="status">{message}</p>}
     {action && <TechnicianOperations key={`${incident.id}-${action}`} incident={incident} action={action} onAction={onAction} onClose={() => setAction(null)} />}
   </>;

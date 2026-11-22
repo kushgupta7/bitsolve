@@ -391,3 +391,8 @@ button:focus-visible { outline: 3px solid #389ab8; outline-offset: 3px; }
 .session-bar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: -4px 0 12px; font-size: 13px; color: #59728a; }
 .session-bar p { margin: 0 auto 0 0; color: #9c3843; }
 .session-bar .report-clear { padding: 6px 14px; min-height: 0; }
+
+/* Secondary actions that need a reason (withdraw / reject) */
+.reason-toggle { margin-top: 8px; }
+.reason-form { margin-top: 12px; border-left: 3px solid #9c3843; }
+.incident-view.danger { background: #9c3843; border-color: #9c3843; color: #fff; }

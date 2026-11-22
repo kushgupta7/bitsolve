@@ -28,6 +28,18 @@ class IncidentWorkflowTests {
         assertThrows(InvalidStateTransitionException.class, () -> i.assess(Incident.Level.LOW, Incident.Level.LOW));
         assertEquals(Incident.Level.HIGH, i.getImpact());
     }
+    @Test void newReportCanBeWithdrawnOrRejectedButNothingLaterCan() {
+        Incident i = new Incident("Printer jam", "The library printer on floor 2 is jammed again.", student, Incident.Category.HARDWARE, Incident.ItService.LIBRARY, Incident.Level.MEDIUM, Incident.Level.MEDIUM);
+        assertTrue(i.isOpen());
+        i.withdraw();
+        assertEquals(IncidentStatus.CLOSED, i.getStatus());
+        assertNotNull(i.getClosedAt());
+        assertNull(i.getResolvedAt());          // closed without any resolution
+        assertFalse(i.isOpen());
+        Incident classified = new Incident("Printer jam", "The library printer on floor 2 is jammed again.", student, Incident.Category.HARDWARE, Incident.ItService.LIBRARY, Incident.Level.MEDIUM, Incident.Level.MEDIUM);
+        classified.classify(Incident.Category.HARDWARE, Incident.Priority.P3);
+        assertThrows(InvalidStateTransitionException.class, classified::withdraw);
+    }
     @Test void rejectsSkippedTransitions() {
         Incident i = incident();
         assertThrows(InvalidStateTransitionException.class, i::close);

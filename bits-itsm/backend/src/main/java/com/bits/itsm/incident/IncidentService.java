@@ -302,6 +302,23 @@ public class IncidentService {
         incidents.flush();
         events.publish(incident.getId(), null, action, previous, incident.getStatus().name(), description);
     }
+    /** NEW only: the admin rejects a duplicate/invalid report, or the reporter withdraws it. A reason is required. */
+    @Transactional
+    public View withdraw(Long id, Message request, String email) {
+        User user = actor(email);
+        boolean admin = user.getRole() == Role.ADMIN;
+        Incident incident = editable(id, user, admin ? Role.ADMIN : Role.STUDENT);
+        incident.withdraw();
+        return finish(incident, user, admin ? "REJECTED" : "WITHDRAWN",
+                (admin ? "Closed by the administrator without action: " : "Withdrawn by the reporter: ") + request.content().trim());
+    }
+    /** AWAITING_INFO → IN_PROGRESS by the primary technician when no reply is needed any more; the SLA clock resumes. */
+    @Transactional
+    public View resume(Long id, String email) {
+        User user = actor(email); Incident incident = editable(id, user, Role.TECHNICIAN);
+        incident.informationReceived();
+        return finish(incident, user, "WORK_RESUMED", "Technician resumed work without waiting for a reply.");
+    }
     private View finish(Incident incident, User actor, String action, String description) {
         incident.record(actor, action, description, STUDENT_VISIBLE);
         incidents.flush();
@@ -313,7 +330,8 @@ public class IncidentService {
             case "VERIFIED", "ISSUE_STILL_EXISTS" -> "RESOLVED";
             case "CLOSED" -> "VERIFIED";
             case "INFORMATION_REQUESTED" -> "IN_PROGRESS";
-            case "STUDENT_REPLIED" -> "AWAITING_INFO";
+            case "STUDENT_REPLIED", "WORK_RESUMED" -> "AWAITING_INFO";
+            case "WITHDRAWN", "REJECTED" -> "NEW";
             default -> incident.getStatus().name();
         };
         // Defence in depth: the state's transition table must also allow this actor (rolls back otherwise).

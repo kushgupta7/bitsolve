@@ -56,6 +56,11 @@ public class AdminManagementController {
         settings.lock();
         User user = users.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found."));
         if (!request.enabled() && user.getEmail().equals(auth.getName())) throw new IllegalStateException("You cannot disable your own account.");
+        if (!request.enabled() && user.isEnabled() && user instanceof Technician) {
+            // A disabled technician can no longer work on anything, so their open incidents must move first.
+            long open = incidents.findByAssignedTechnicianIdOrderByCreatedAtDesc(user.getId()).stream().filter(Incident::isOpen).count();
+            if (open > 0) throw new IllegalStateException(user.getName() + " still owns " + open + " open incident" + (open == 1 ? "" : "s") + ". Reassign them before disabling the account.");
+        }
         String before = user.getName() + ":" + user.isEnabled();
         user.rename(request.name()); user.setEnabled(request.enabled());
         audit(auth, "USER_UPDATED", before, user.getName() + ":" + user.isEnabled(), "Updated account " + id); return view(user);
@@ -73,7 +78,7 @@ public class AdminManagementController {
         Instant now = Instant.now();
         Map<String, Object> report = new LinkedHashMap<>();
         report.put("total", records.size());
-        report.put("active", records.stream().filter(i -> i.getResolvedAt() == null).count());
+        report.put("active", records.stream().filter(Incident::isOpen).count());
         report.put("responseBreaches", records.stream().filter(i -> i.responseSla(now) == SlaClock.Status.BREACHED).count());
         report.put("resolutionBreaches", records.stream().filter(i -> i.resolutionSla(now) == SlaClock.Status.BREACHED).count());
         report.put("byStatus", records.stream().collect(java.util.stream.Collectors.groupingBy(i -> i.getStatus().name(), java.util.stream.Collectors.counting())));

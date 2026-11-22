@@ -170,4 +170,29 @@ class PostgresIncidentTests {
         assertEquals("CLASSIFIED", classified.get("status").asText());
         assertNotEquals("PENDING", classified.get("priority").asText());
     }
+    @Test void reporterWithdrawsAdminRejectsDuplicateAndTechnicianResumesWithoutReply() throws Exception {
+        long mistaken = create();
+        postAs("technician04", "/" + mistaken + "/withdraw", Map.of("content", "not mine"), 403);
+        JsonNode withdrawn = postAs("student01", "/" + mistaken + "/withdraw", Map.of("content", "It works again"), 200);
+        assertEquals("CLOSED", withdrawn.get("status").asText());
+        assertTrue(withdrawn.get("resolvedAt").isNull());
+        long duplicate = create();
+        JsonNode rejected = postAs("admin01", "/" + duplicate + "/withdraw", Map.of("content", "Duplicate of " + mistaken), 200);
+        assertEquals("CLOSED", rejected.get("status").asText());
+        postAs("admin01", "/" + duplicate + "/withdraw", Map.of("content", "again"), 409);   // only a NEW report can be withdrawn
+        long waiting = create(); investigate(waiting);
+        postAs("technician04", "/" + waiting + "/information", Map.of("content", "Which building?"), 200);
+        JsonNode resumed = postAs("technician04", "/" + waiting + "/resume", Map.of(), 200);
+        assertEquals("IN_PROGRESS", resumed.get("status").asText());
+        postAs("student01", "/" + waiting + "/resume", Map.of(), 403);
+    }
+
+    @Test void technicianWithOpenIncidentsCannotBeDisabled() throws Exception {
+        long id = create(); investigate(id);
+        long technicianId = users.findByEmail(email("technician04")).orElseThrow().getId();
+        mvc.perform(put("/api/admin/users/" + technicianId).with(user(email("admin01")).roles("ADMIN")).with(csrf())
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"name\":\"Network Technician\",\"enabled\":false}"))
+           .andExpect(status().isConflict());
+        assertTrue(users.findByEmail(email("technician04")).orElseThrow().isEnabled());
+    }
 }

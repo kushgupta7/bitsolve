@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class IncidentStateMachineTest {
     /** The complete set of legal edges from the design (docs/DESIGN_PATTERNS.md). */
     static final Map<IncidentStatus, Set<IncidentStatus>> LEGAL = Map.of(
-            NEW, Set.of(CLASSIFIED), CLASSIFIED, Set.of(ASSIGNED), ASSIGNED, Set.of(ACKNOWLEDGED),
+            NEW, Set.of(CLASSIFIED, CLOSED), CLASSIFIED, Set.of(ASSIGNED), ASSIGNED, Set.of(ACKNOWLEDGED),
             ACKNOWLEDGED, Set.of(IN_PROGRESS), IN_PROGRESS, Set.of(AWAITING_INFO, RESOLVED),
             AWAITING_INFO, Set.of(IN_PROGRESS), RESOLVED, Set.of(VERIFIED, IN_PROGRESS), VERIFIED, Set.of(CLOSED),
             CLOSED, Set.of());
@@ -52,10 +52,11 @@ class IncidentStateMachineTest {
             assertEquals(from, e.from()); assertEquals(to, e.to()); assertEquals("INVALID_STATE_TRANSITION", e.code()); assertEquals(409, e.httpStatus());
             rejected++;
         }
-        assertEquals(81 - 10, rejected); // 9 states squared minus the 10 legal edges
+        assertEquals(81 - 11, rejected); // 9 states squared minus the 11 legal edges
     }
 
-    @Test void newToClosedIsRejectedOnTheEntity() {
+    // Normal closing needs VERIFIED; a NEW report can only leave via withdraw() (duplicate/invalid/withdrawn).
+    @Test void regularCloseOnANewIncidentIsRejected() {
         Incident i = new Incident("Printer", "The lab printer is jammed again today.", student, Incident.Category.HARDWARE, Incident.ItService.LAB_COMPUTERS, Incident.Level.LOW, Incident.Level.LOW);
         assertThrows(InvalidStateTransitionException.class, i::close);
         assertEquals(NEW, i.getStatus());
@@ -63,7 +64,7 @@ class IncidentStateMachineTest {
 
     @ParameterizedTest
     @CsvSource({"NEW,CLASSIFIED,ADMIN,true", "NEW,CLASSIFIED,STUDENT,false", "ASSIGNED,ACKNOWLEDGED,TECHNICIAN,true", "ASSIGNED,ACKNOWLEDGED,ADMIN,false",
-            "IN_PROGRESS,AWAITING_INFO,TECHNICIAN,true", "AWAITING_INFO,IN_PROGRESS,STUDENT,true", "AWAITING_INFO,IN_PROGRESS,TECHNICIAN,false",
+            "IN_PROGRESS,AWAITING_INFO,TECHNICIAN,true", "AWAITING_INFO,IN_PROGRESS,STUDENT,true", "AWAITING_INFO,IN_PROGRESS,TECHNICIAN,true", "NEW,CLOSED,STUDENT,true", "NEW,CLOSED,TECHNICIAN,false",
             "RESOLVED,VERIFIED,STUDENT,true", "RESOLVED,VERIFIED,SYSTEM,true", "RESOLVED,VERIFIED,TECHNICIAN,false", "VERIFIED,CLOSED,ADMIN,true", "VERIFIED,CLOSED,STUDENT,false"})
     void eachStateDecidesWhichActorsMayMoveIt(IncidentStatus from, IncidentStatus to, LifecycleActor actor, boolean allowed) {
         if (allowed) IncidentLifecycle.of(from).requireTransition(to, actor);
