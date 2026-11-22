@@ -1,0 +1,81 @@
+name: CI (review of uploaded snapshot)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bitsolve_test
+          POSTGRES_USER: bitsolve
+          POSTGRES_PASSWORD: bitsolve-ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bitsolve" --health-interval 5s --health-retries 20
+    defaults:
+      run:
+        working-directory: bits-itsm
+    steps:
+      - uses: actions/checkout@v4
+      # Windows and macOS treat File.md and file.md as the same file, so the zip would not extract cleanly.
+      - name: No file names that differ only in case
+        run: |
+          dupes=$(git ls-files | tr '[:upper:]' '[:lower:]' | sort | uniq -d)
+          if [ -n "$dupes" ]; then echo "::error title=case-colliding paths::$dupes"; exit 1; fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: bits-itsm/frontend/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+          cache: maven
+      - name: Frontend tests and build
+        working-directory: bits-itsm/frontend
+        run: |
+          set -o pipefail
+          (npm ci && npm test && npm run build) 2>&1 | tee "$RUNNER_TEMP/frontend.log"
+      - name: Backend tests (unit, MockMvc, PostgreSQL) with coverage
+        working-directory: bits-itsm/backend
+        env:
+          BITSOLVE_DB_TESTS: "true"
+          BITSOLVE_TEST_DB_URL: jdbc:postgresql://localhost:5432/bitsolve_test
+          DB_USER: bitsolve
+          DB_PASSWORD: bitsolve-ci
+          DEMO_USER_PASSWORD: ci-only-password-123
+        run: |
+          set -o pipefail
+          chmod +x mvnw
+          ./mvnw -B -ntp -Pcoverage verify 2>&1 | tee "$RUNNER_TEMP/backend.log"
+      # Makes the cause of a failure readable without opening the full log (one annotation per log).
+      - name: Summarise failure
+        if: failure()
+        working-directory: bits-itsm
+        run: |
+          for f in "$RUNNER_TEMP"/frontend.log "$RUNNER_TEMP"/backend.log; do
+            [ -f "$f" ] || continue
+            body=$( (grep -E "ERROR|FAIL|Tests run:.*Fail|error:|Caused by|expected|BUILD" "$f" | grep -v "Tests run: [0-9]*, Failures: 0, Errors: 0" | head -60; echo "----- last lines -----"; tail -40 "$f") | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\r//g;s/\n/%0A/g' | cut -c1-60000)
+            echo "::error title=$(basename "$f")::$body"
+          done
+          for r in backend/target/surefire-reports/*.txt; do
+            [ -f "$r" ] || continue
+            if grep -qE "FAILURE|ERROR" "$r"; then
+              body=$(head -60 "$r" | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\r//g;s/\n/%0A/g' | cut -c1-20000)
+              echo "::error title=$(basename "$r")::$body"
+            fi
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-and-coverage-reports
+          path: |
+            bits-itsm/backend/target/surefire-reports
+            bits-itsm/backend/target/site/jacoco
+
