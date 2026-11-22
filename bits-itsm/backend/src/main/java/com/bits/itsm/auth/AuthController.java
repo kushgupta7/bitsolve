@@ -46,9 +46,10 @@ public class AuthController {
         public String toString() { return "LoginRequest[credentials redacted]"; }
     }
 
-    public record Account(Long id, String name, String email, Role role) {
+    public record Account(Long id, String name, String email, Role role, String studentNumber) {
         static Account from(User user) {
-            return new Account(user.getId(), user.getName(), user.getEmail(), user.getRole());
+            return new Account(user.getId(), user.getName(), user.getEmail(), user.getRole(),
+                    user instanceof com.bits.itsm.user.Student student ? student.getStudentNumber() : null);
         }
     }
 

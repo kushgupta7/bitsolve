@@ -124,6 +124,20 @@ The project lives in the `bits-itsm/` subfolder. The repo root has `README.md`, 
 - **Report form:** after submitting, it offers "View my incidents".
 - **Tests:** TC60–TC64 added; `smoke_flow.py` now also covers the information request + resume and a withdrawn report.
 
+## 4c. "Half-implemented" audit (22 Nov, morning)
+- **Bug fixed:** closing any form inside an incident (transfer, collaborator, info request, note, resolution, request review) used to blank the incident window. The nested `<dialog>`'s close event bubbled to the parent's `onClose`; every dialog now ignores close events from its children.
+- **New CI step `scripts/ui_crawl.mjs`** (Playwright against the Docker app). It logs in as student, technician and admin, opens every menu page, incident details and every action form (36 screens), and fails on:
+  - any dropdown without real options;
+  - any on-screen error;
+  - any JavaScript error or failed API call;
+  - an incident window left blank.
+  - It publishes a `::notice` listing the screens it covered.
+- **`smoke_flow.py` now also covers:**
+  - collaboration request → admin approves → collaborator added;
+  - transfer request → admin approves → primary changes;
+  - e-mail actually arriving in MailHog.
+- **Profile:** shows the student ID (`/api/auth/me` now includes `studentNumber`).
+
 ## 5. Demo-only configuration (important)
 - `DemoUserSeeder`: 9 accounts. `DemoIncidentSeeder`: 60 incidents over 30 days. Both run only with profile `dev` and `bitsolve.demo.seed-enabled=true`.
 - **`DemoShowcaseSeeder`** (new; `BITSOLVE_DEMO_SHOWCASE=true` is set in docker-compose):
