@@ -12,6 +12,7 @@ export default function IncidentManagementActions({ incident, role, options, onA
   const [category, setCategory] = useState(incident.category);
   const [impact, setImpact] = useState('');
   const [urgency, setUrgency] = useState('');
+  const [autoAssign, setAutoAssign] = useState(true);
   const [technicianId, setTechnicianId] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -41,12 +42,27 @@ export default function IncidentManagementActions({ incident, role, options, onA
     try {
       const action = event.nativeEvent.submitter?.value === 'auto' ? 'auto-assign' : incident.status === 'NEW' ? 'classify' : assignable ? 'assign' : 'close';
       await onAction(action, action === 'classify' ? { category, impact, urgency } : action === 'assign' ? { technicianId: Number(technicianId) } : {});
-      setMessage('Saved successfully.');
+      // One step for the admin: classify and hand the incident to a technician straight away.
+      if (action === 'classify' && autoAssign) {
+        try { await onAction('auto-assign', {}); setMessage('Classified and assigned.'); }
+        catch (assignError) { setMessage(`Classified. Not assigned yet: ${assignError.message}`); }
+      } else setMessage(action === 'classify' ? 'Classified.' : 'Saved.');
+    } catch (error) { setError(error.message); }
+    finally { setBusy(false); }
+  }
+  // Acknowledging (response SLA) and starting are separate states, but one click for the technician.
+  async function startWork() {
+    if (busy) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      if (incident.status === 'ASSIGNED') await onAction('acknowledge', {});
+      await onAction('start', {});
+      setMessage('Work started.');
     } catch (error) { setError(error.message); }
     finally { setBusy(false); }
   }
   return <>
-    {role === 'ADMIN' && <section className="student-detail-section"><h3>Related incident suggestions</h3><p>Rule-based text similarity; incidents are not merged automatically.</p>{related.length ? <ul>{related.map(item => <li key={item.incidentId}>Incident {item.incidentId}: {item.title} ({Math.round(item.similarity * 100)}% similar)</li>)}</ul> : <p>No related incidents found.</p>}</section>}
+    {role === 'ADMIN' && <section className="student-detail-section"><h3>Possible duplicates</h3>{related.length ? <ul>{related.map(item => <li key={item.incidentId}>Incident {item.incidentId}: {item.title} ({Math.round(item.similarity * 100)}% similar)</li>)}</ul> : <p>None found.</p>}</section>}
     {role === 'ADMIN' && assignable && <Recommendations incident={incident} onPick={id => setTechnicianId(candidates.some(c => String(c.id) === id) ? id : '')} />}
     {role === 'ADMIN' && (assignable || ['NEW', 'VERIFIED'].includes(incident.status)) && <form className="report-form" onSubmit={submit}>
       {incident.status === 'NEW' && incident.categorySuggestion && <p>Suggested category: <strong>{incident.categorySuggestion.category}</strong>. {incident.categorySuggestion.explanation}</p>}
@@ -56,11 +72,12 @@ export default function IncidentManagementActions({ incident, role, options, onA
         <div className="report-field"><label htmlFor="classify-urgency">Urgency (how soon it is needed)</label><select id="classify-urgency" value={urgency} onChange={event => setUrgency(event.target.value)} required><option value="">Assess urgency</option>{LEVELS.map(([value, label]) => <option key={value} value={value}>{label}: {URGENCY_HINTS[value]}</option>)}</select></div>
       </div>}
       {incident.status === 'NEW' && incident.affectedUsers && <p className="report-guidance">Reporter estimates {incident.affectedUsers} people affected{incident.affectedUsers > 100 ? ' (more than 100 raises the priority one level)' : ''}.</p>}
+      {incident.status === 'NEW' && <label className="report-check"><input type="checkbox" checked={autoAssign} onChange={event => setAutoAssign(event.target.checked)} /> Assign a technician automatically</label>}
       {assignable && <div className="report-field"><label htmlFor="assign-technician">Assign Technician</label><select id="assign-technician" value={technicianId} onChange={event => setTechnicianId(event.target.value)}><option value="">{candidatesLoading ? 'Loading eligible technicians…' : 'Choose an eligible technician'}</option>{candidates.map(person => <option key={person.id} value={person.id}>{person.name} · {person.total}/{person.maxWorkload} active</option>)}</select>{!candidatesLoading && !candidates.length && <p>No eligible technicians currently available.</p>}</div>}
-      <div className="report-actions"><button className="incident-view" type="submit" disabled={busy || (assignable && !technicianId) || (incident.status === 'NEW' && (!impact || !urgency))}>{busy ? 'Saving…' : incident.status === 'NEW' ? 'Classify Incident' : assignable ? incident.status === 'CLASSIFIED' ? 'Assign Technician' : 'Reassign Technician' : 'Close Incident'}</button>
+      <div className="report-actions"><button className="incident-view" type="submit" disabled={busy || (assignable && !technicianId) || (incident.status === 'NEW' && (!impact || !urgency))}>{busy ? 'Saving…' : incident.status === 'NEW' ? (autoAssign ? 'Classify & Assign' : 'Classify') : assignable ? incident.status === 'CLASSIFIED' ? 'Assign Technician' : 'Reassign Technician' : 'Close Incident'}</button>
       {incident.status === 'CLASSIFIED' && <button className="incident-view" type="submit" value="auto" disabled={busy}>Automatically Assign</button>}</div>
     </form>}
-    {role === 'TECHNICIAN' && <div className="report-actions">{(incident.primaryOwner ? [...(incident.status === 'ASSIGNED' ? ['acknowledge'] : incident.status === 'ACKNOWLEDGED' ? ['start'] : incident.status === 'IN_PROGRESS' ? ['note', 'information', 'resolution'] : incident.status === 'AWAITING_INFO' ? ['note'] : []), ...(['ASSIGNED', 'ACKNOWLEDGED', 'IN_PROGRESS', 'AWAITING_INFO'].includes(incident.status) ? ['transfer', 'collaboration'] : [])] : ['IN_PROGRESS', 'AWAITING_INFO'].includes(incident.status) ? ['note'] : []).map(action => <button className="incident-view" key={action} onClick={() => setAction(action)}>{operationLabels[action]}</button>)}</div>}
+    {role === 'TECHNICIAN' && <div className="report-actions">{incident.primaryOwner && ['ASSIGNED', 'ACKNOWLEDGED'].includes(incident.status) && <button className="incident-view" disabled={busy} onClick={startWork}>{busy ? 'Starting…' : 'Start Work'}</button>}{(incident.primaryOwner ? [...(incident.status === 'IN_PROGRESS' ? ['note', 'information', 'resolution'] : incident.status === 'AWAITING_INFO' ? ['note'] : []), ...(['ASSIGNED', 'ACKNOWLEDGED', 'IN_PROGRESS', 'AWAITING_INFO'].includes(incident.status) ? ['transfer', 'collaboration'] : [])] : ['IN_PROGRESS', 'AWAITING_INFO'].includes(incident.status) ? ['note'] : []).map(action => <button className="incident-view" key={action} onClick={() => setAction(action)}>{operationLabels[action]}</button>)}</div>}
     {role === 'TECHNICIAN' && incident.status === 'AWAITING_INFO' && <p role="status">Waiting for the reporter's reply. The resolution SLA clock is paused.</p>}
     {error && <p className="report-error" role="alert">{error}</p>}{message && <p role="status">{message}</p>}
     {action && <TechnicianOperations key={`${incident.id}-${action}`} incident={incident} action={action} onAction={onAction} onClose={() => setAction(null)} />}

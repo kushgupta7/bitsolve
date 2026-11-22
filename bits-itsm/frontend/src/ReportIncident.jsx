@@ -117,7 +117,7 @@ export default function ReportIncident({ onCancel, live = false }) {
       </div>
 
       <form className="report-form" onSubmit={handleSubmit} onReset={clearForm} noValidate>
-        <p className="report-guidance">{live ? 'All fields except the number of affected people are required. IT support assesses impact and urgency and sets the priority.' : 'All fields are required. Service options are provisional demo data.'}</p>
+        <p className="report-guidance">{live ? 'All fields are required except the number of people affected.' : 'All fields are required. Service options are provisional demo data.'}</p>
         {live && !options && <p role="status">{message || 'Loading available categories and services…'} <button type="button" className="report-clear" onClick={() => setRetry(value => value + 1)}>Retry</button></p>}
         <div className="report-field">
           <label htmlFor="incident-title">Incident Title</label>
@@ -145,7 +145,6 @@ export default function ReportIncident({ onCancel, live = false }) {
           <p className="report-guidance" id="affected-hint">More than 100 people raises the priority by one level.</p>
           <p className="report-error" id="affected-error" role="alert">{errors.affectedUsers}</p>
         </div>
-        <p className="report-guidance">You don't need to rate how serious it is: the administrator assesses impact and urgency when classifying, and the priority is calculated from those, the service's criticality and the number of people affected.</p>
 
         <div className="report-actions">
           <button className="submit-button" type="submit" disabled={busy || (live && !options)}>{busy ? 'Saving…' : 'Submit Incident'}</button>

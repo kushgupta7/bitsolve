@@ -51,31 +51,32 @@ export function AvailabilityStatus() {
 }
 
 /** Technician home: availability, then own incidents ranked by predicted SLA risk. */
-export function TechnicianFocus() {
+export function TechnicianFocus({ onOpenIncidents }) {
   const [risk, setRisk] = useState(null);
   useEffect(() => { let a = true; apiRequest('technician/sla-risk').then(d => { if (a) setRisk(d); }).catch(() => { if (a) setRisk([]); }); return () => { a = false; }; }, []);
   return <>
     <AvailabilityStatus />
     {risk && <section className="dashboard-incidents admin-section home-panel" aria-label="Your SLA focus">
       <div className="dashboard-section-heading"><h2>Work on these first</h2><span>Predicted SLA risk</span></div>
-      <div className="insights-body"><RiskList items={risk.filter(r => r.level !== 'LOW').slice(0, 4)} empty="Nothing at risk. All your open incidents are on track." /></div>
+      <div className="insights-body"><RiskList items={risk.filter(r => r.level !== 'LOW').slice(0, 4)} empty="Nothing at risk. All your open incidents are on track." />
+        {onOpenIncidents && <div className="report-actions"><button type="button" className="incident-view" onClick={onOpenIncidents}>Open my incidents ({risk.length} open)</button></div>}</div>
     </section>}
   </>;
 }
 
-/** Administrator home: live KPIs, alerts and the riskiest incidents, then the full incident list below. */
+/** Administrator home: what is waiting, live KPIs, alerts and the riskiest incidents. */
 export function AdminHome({ onNavigate }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   useEffect(() => {
     let a = true;
-    Promise.all([apiRequest('admin/insights/analytics'), apiRequest('admin/insights/sla-risk'), apiRequest('admin/insights/major-incidents')])
-      .then(([analytics, risk, majors]) => { if (a) setData({ analytics, risk, majors }); }).catch(e => { if (a) setError(e.message); });
+    Promise.all([apiRequest('admin/insights/analytics'), apiRequest('admin/insights/sla-risk'), apiRequest('admin/insights/major-incidents'), apiRequest('incidents')])
+      .then(([analytics, risk, majors, incidents]) => { if (a) setData({ analytics, risk, majors, waiting: incidents.filter(i => i.status === 'NEW').length }); }).catch(e => { if (a) setError(e.message); });
     return () => { a = false; };
   }, []);
   if (error) return <p className="report-error" role="alert">{error}</p>;
   if (!data) return <p role="status">Loading overview…</p>;
-  const { analytics: k, risk, majors } = data;
+  const { analytics: k, risk, majors, waiting } = data;
   const cards = [
     ['Open incidents', k.open, ''], ['Critical (P1) open', k.critical, k.critical ? 'danger' : 'ok'], ['SLA violations', k.slaViolations, k.slaViolations ? 'danger' : 'ok'],
     ['SLA compliance', k.slaCompliancePercent == null ? '—' : `${k.slaCompliancePercent}%`, k.slaCompliancePercent == null ? '' : k.slaCompliancePercent >= 90 ? 'ok' : 'warn'],
@@ -83,6 +84,10 @@ export function AdminHome({ onNavigate }) {
   ];
   return <>
     {majors.length > 0 && <div className="major-banner" role="alert"><strong>Major incident:</strong> {majors[0].size ?? majors[0].incidentIds.length} reports on {majors[0].serviceLabel} ({majors[0].labels.join(', ')}). <button className="link-button" onClick={() => onNavigate('Insights & Analytics')}>Open insights</button></div>}
+    <section className="dashboard-incidents admin-section home-panel" aria-label="Your next step">
+      <div className="dashboard-section-heading"><h2>{waiting ? `${waiting} new incident${waiting === 1 ? '' : 's'} to classify` : 'Nothing waiting to be classified'}</h2>
+        <button className="incident-view" onClick={() => onNavigate('All Incidents')}>Open all incidents</button></div>
+    </section>
     <div className="dashboard-summary kpi-row">{cards.map(([label, value, tone]) => <div className={`dashboard-summary-card${tone ? ` tone-${tone}` : ''}`} key={label}><h3>{label}</h3><p>{value}</p></div>)}</div>
     <section className="dashboard-incidents admin-section home-panel" aria-label="Incidents at risk">
       <div className="dashboard-section-heading"><h2>Needs attention</h2><button className="report-clear" onClick={() => onNavigate('Insights & Analytics')}>All insights →</button></div>

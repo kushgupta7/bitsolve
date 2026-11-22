@@ -29,7 +29,8 @@ export default function StudentDashboard({ incidents: allIncidents = sampleIncid
         <nav aria-label="Student navigation">
           <button type="button" className={page === 'dashboard' ? 'dashboard-nav-active' : ''} aria-current={page === 'dashboard' ? 'page' : undefined} onClick={() => navigate('dashboard')}><NavIcon name="Dashboard" /><span>Dashboard</span></button>
           <button type="button" className={page === 'report' ? 'dashboard-nav-active' : ''} aria-current={page === 'report' ? 'page' : undefined} onClick={() => navigate('report')}><NavIcon name="Report Incident" /><span>Report Incident</span></button>
-          <button type="button" className={page === 'incidents' ? 'dashboard-nav-active' : ''} aria-current={page === 'incidents' ? 'page' : undefined} onClick={() => navigate('incidents')}><NavIcon name="My Incidents" /><span>My Incidents</span></button>
+          {/* Signed in, the dashboard already is the student's incident list, so no second menu item for it. */}
+          {!sessionUser && <button type="button" className={page === 'incidents' ? 'dashboard-nav-active' : ''} aria-current={page === 'incidents' ? 'page' : undefined} onClick={() => navigate('incidents')}><NavIcon name="My Incidents" /><span>My Incidents</span></button>}
           {['Notifications', 'Profile'].map((label) => (
             <button key={label} type="button" className={page === label.toLowerCase() ? 'dashboard-nav-active' : ''} aria-current={page === label.toLowerCase() ? 'page' : undefined} onClick={() => navigate(label.toLowerCase())}>
               <NavIcon name={label} /><span>{label}</span>

@@ -13,11 +13,11 @@ import { demoIncidents, users, technicians, technicianSkills, transferRequests, 
 
 // Sidebar sections; every page appears exactly once.
 const navGroups = [
-  ['Overview', ['Dashboard', 'Insights & Analytics', 'All Incidents']],
-  ['Workflow', ['Assignment Requests', 'Collaboration Requests', 'Escalations']],
-  ['People', ['Manage Technicians', 'Manage Users']],
+  ['Overview', ['Dashboard', 'All Incidents', 'Insights & Analytics']],
+  ['Workflow', ['Requests']],
+  ['People', ['Users & Technicians']],
   ['Configuration', ['IT Services', 'Incident Categories', 'SLA Policies', 'Assignment Strategies']],
-  ['Records', ['Reports & Analytics', 'Audit Logs', 'Notifications', 'Settings']],
+  ['Records', ['Audit Logs', 'Notifications']],
 ];
 const pages = ['Dashboard', 'Insights & Analytics', 'All Incidents', 'Assignment Requests', 'Collaboration Requests', 'Manage Technicians', 'Manage Users', 'IT Services', 'Incident Categories', 'SLA Policies', 'Assignment Strategies', 'Escalations', 'Reports & Analytics', 'Audit Logs', 'Notifications', 'Settings'];
 const person = (id) => users.find((user) => user.id === id)?.name || 'Unassigned';
@@ -570,14 +570,17 @@ export default function AdminDashboard({ sessionUser, sessionNotice }) {
     default: content = <DashboardHome open={open} navigate={navigate} />;
   }
 
-  const managementPages = ['Manage Users', 'IT Services', 'Incident Categories', 'SLA Policies', 'Escalations', 'Reports & Analytics', 'Audit Logs'];
+  const managementPages = ['IT Services', 'Incident Categories', 'SLA Policies'];
   if (sessionUser && managementPages.includes(page)) content = <AdminManagement key={page} page={page} />;
-  if (sessionUser && page === 'Settings') content = <section className="report-form"><h2>System configuration</h2><p>Manage persisted priority and assignment strategies and SLA targets using their respective pages.</p><button className="incident-view" onClick={() => navigate('Assignment Strategies')}>Open Strategies</button></section>;
+  // Merged pages: one place per job.
+  if (sessionUser && page === 'Users & Technicians') content = <><AdminManagement key="users" page="Manage Users" /><AssignmentManagement key="workload" mode="workload" role="ADMIN" userId={sessionUser.id} /></>;
+  if (sessionUser && page === 'Requests') content = <><AssignmentManagement key="transfer" mode="transfer" role="ADMIN" userId={sessionUser.id} /><AssignmentManagement key="collaboration" mode="collaboration" role="ADMIN" userId={sessionUser.id} /></>;
+  if (sessionUser && page === 'Audit Logs') content = <><AdminManagement key="audit" page="Audit Logs" /><AdminManagement key="escalations" page="Escalations" /></>;
   if (sessionUser && page === 'Notifications') content = <Notifications live role="ADMIN" />;
-  if (page === 'Insights & Analytics') content = sessionUser ? <Suspense fallback={<p role="status">Loading charts…</p>}><Insights /></Suspense> : <section className="report-form"><h2>Sign in required</h2><p>Insights are computed by the Java backend from live data.</p></section>;
+  if (page === 'Insights & Analytics') content = sessionUser ? <><Suspense fallback={<p role="status">Loading charts…</p>}><Insights /></Suspense><AdminManagement key="reports" page="Reports & Analytics" /></> : <section className="report-form"><h2>Sign in required</h2><p>Insights are computed by the Java backend from live data.</p></section>;
   if (sessionUser && page === 'All Incidents') content = <LiveIncidents role="ADMIN" />;
-  if (sessionUser && page === 'Dashboard') content = <><AdminHome onNavigate={navigate} /><LiveIncidents role="ADMIN" /></>;
-  const assignmentPages = { 'Assignment Requests': 'transfer', 'Collaboration Requests': 'collaboration', 'Manage Technicians': 'workload', 'Assignment Strategies': 'strategy' };
+  if (sessionUser && page === 'Dashboard') content = <AdminHome onNavigate={navigate} />;
+  const assignmentPages = { 'Assignment Strategies': 'strategy' };
   if (sessionUser && assignmentPages[page]) content = <AssignmentManagement key={page} mode={assignmentPages[page]} role="ADMIN" userId={sessionUser.id} />;
 
   const selectedUser = selection?.type === 'user' ? users.find((user) => user.id === selection.id) : null;

@@ -57,8 +57,10 @@ function AuthenticatedApp() {
   if (!user) return <LoginPage initialMessage={message} onLogin={(account) => { setMessage(''); setUser(account); }} />;
 
   const Dashboard = { STUDENT: StudentDashboard, TECHNICIAN: TechnicianDashboard, ADMIN: AdminDashboard }[user.role];
-  const sessionNotice = <div className="dashboard-preview-note">
-    <div><p><strong>Signed in as {user.name}</strong> · {user.email}</p>{message && <p role="alert">{message}</p>}</div>
+  // The name is already in the top bar, so this is just the sign-out control (and any session message).
+  const sessionNotice = <div className="session-bar">
+    {message && <p role="alert">{message}</p>}
+    <span>{user.email}</span>
     <button className="report-clear" type="button" disabled={signingOut} onClick={logout}>{signingOut ? 'Signing out…' : 'Sign Out'}</button>
   </div>;
   return Dashboard ? <Dashboard sessionUser={user} sessionNotice={sessionNotice} /> : <main>{sessionNotice}<p role="alert">Your account role is not supported.</p></main>;

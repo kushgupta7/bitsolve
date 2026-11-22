@@ -13,7 +13,7 @@ import { demoIncidents, technicians, users, slaPolicies, auditLogs, investigatio
 const priorities = { P1: 'Critical', P2: 'High', P3: 'Medium', P4: 'Low' };
 const slaStates = ['ON_TRACK', 'AT_RISK', 'BREACHED', 'MET'];
 const emptyFilters = { search: '', status: '', priority: '', category: '', slaStatus: '' };
-const pages = { dashboard: 'Dashboard', assigned: 'Assigned Incidents', team: 'My Team Incidents', transfers: 'Transfer Requests', investigation: 'Investigation', workload: 'My Workload', notifications: 'Notifications', profile: 'Profile' };
+const pages = { dashboard: 'Dashboard', incidents: 'My Incidents', requests: 'Requests', notifications: 'Notifications', profile: 'Profile' };
 const dateLabel = (value) => value ? value.slice(0, 16).replace('T', ' ') : 'Not provided';
 const userName = (id) => users.find((user) => user.id === id)?.name || 'Not provided';
 
@@ -386,11 +386,12 @@ export default function TechnicianDashboard({ incidents = demoIncidents, session
     default: content = <DashboardHome incidents={assigned} technician={technician} workload={workload} onView={viewDetails} onAction={openOperation} onNavigate={navigate} />;
   }
 
+  // Signed-in pages: one list of my incidents (owned or collaborating), one page for my requests.
   if (sessionUser && page === 'notifications') content = <Notifications live role="TECHNICIAN" />;
-  if (sessionUser && ['assigned', 'investigation'].includes(page)) content = <LiveIncidents role="TECHNICIAN" team={page === 'investigation'} />;
-  if (sessionUser && page === 'dashboard') content = <><Welcome user={sessionUser} subtitle="Your assigned incidents, ranked by what needs you first." /><TechnicianFocus /><LiveIncidents role="TECHNICIAN" /></>;
-  if (sessionUser && page === 'team') content = <><LiveIncidents role="TECHNICIAN" team /><AssignmentManagement mode="collaboration" role="TECHNICIAN" userId={sessionUser.id} /></>;
-  if (sessionUser && ['transfers', 'workload'].includes(page)) content = <AssignmentManagement key={page} mode={page === 'transfers' ? 'transfer' : 'workload'} role="TECHNICIAN" userId={sessionUser.id} />;
+  if (sessionUser && page === 'dashboard') content = <><Welcome user={sessionUser} subtitle="Your incidents, ranked by what needs you first." /><TechnicianFocus onOpenIncidents={() => navigate('incidents')} /></>;
+  if (sessionUser && page === 'incidents') content = <LiveIncidents role="TECHNICIAN" team />;
+  if (sessionUser && page === 'requests') content = <><AssignmentManagement key="transfer" mode="transfer" role="TECHNICIAN" userId={sessionUser.id} /><AssignmentManagement key="collaboration" mode="collaboration" role="TECHNICIAN" userId={sessionUser.id} /></>;
+  if (sessionUser && page === 'profile') content = <><DetailSection title="Technician Profile" items={[['Name', sessionUser.name], ['Institutional Email', sessionUser.email]]} /><AssignmentManagement key="workload" mode="workload" role="TECHNICIAN" userId={sessionUser.id} /></>;
 
   return <div className={`student-dashboard technician-portal${isMenuOpen ? '' : ' menu-collapsed'}`}>
     <aside className="dashboard-sidebar" id="technician-sidebar" hidden={!isMenuOpen}>

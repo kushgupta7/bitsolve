@@ -120,8 +120,8 @@ export default function TechnicianOperations({ action, incident, technicianId, o
 
   return <dialog ref={dialog} className="incident-dialog technician-operation-dialog" aria-labelledby="operation-title" aria-describedby="operation-notice" onClose={onClose}>
     <div className="dashboard-section-heading"><h2 id="operation-title">{operationLabels[action]}</h2><button type="button" className="report-clear" autoFocus onClick={() => dialog.current.close()}>Close</button></div>
-    <p id="operation-notice" className="report-guidance">{onAction ? 'Changes are saved to this assigned incident after validation.' : 'Frontend preview only. Nothing is saved, submitted, sent or approved.'}</p>
-    {onAction && request && <p role="status">{loading ? 'Loading eligible technicians…' : 'Administrator approval is required. Submitting does not change the incident team.'}</p>}
+    {!onAction && <p id="operation-notice" className="report-guidance">Frontend preview only. Nothing is saved, submitted, sent or approved.</p>}
+    {onAction && request && <p role="status">{loading ? 'Loading eligible technicians…' : 'Goes to the administrator for approval.'}</p>}
     <dl className="incident-details technician-operation-context">
       <div><dt>Incident ID</dt><dd>{incident.id}</dd></div><div><dt>Incident Title</dt><dd>{incident.title}</dd></div>
       <div><dt>Current Primary Technician</dt><dd>{primary.name} ({primary.id})</dd></div>

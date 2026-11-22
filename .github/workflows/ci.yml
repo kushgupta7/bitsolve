@@ -116,6 +116,8 @@ jobs:
           code=$(curl -s -o options.json -w '%{http_code}' -b "$jar" http://localhost:8080/api/incidents/options)
           python3 -c 'import json,sys; d=json.load(open("options.json")); print("report form:", len(d["categories"]), "categories,", len(d["services"]), "services"); sys.exit(0 if d["categories"] and d["services"] else 1)' \
             || { echo "::error title=smoke::report form has empty dropdowns (HTTP $code): $(head -c 300 options.json)"; exit 1; }
+      - name: Main workflow end to end (report, classify + assign, start, transfer options, resolve, verify)
+        run: python3 bits-itsm/scripts/smoke_flow.py http://localhost:8080
       - name: App logs on failure
         if: failure()
         working-directory: bits-itsm

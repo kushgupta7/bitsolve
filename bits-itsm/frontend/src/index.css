@@ -382,3 +382,12 @@ button:focus-visible { outline: 3px solid #389ab8; outline-offset: 3px; }
 .availability-dot { width: 10px; height: 10px; border-radius: 50%; background: #2e7d4f; }
 .availability-busy .availability-dot { background: #c27c0e; }
 .availability-unavailable .availability-dot { background: #9c3843; }
+
+/* Inline checkbox option inside forms */
+.report-check { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; font-weight: 600; color: #1f3b57; cursor: pointer; }
+.report-check input { width: 18px; height: 18px; accent-color: currentColor; }
+
+/* Compact sign-out row under the top bar (the name is already shown in the top bar). */
+.session-bar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: -4px 0 12px; font-size: 13px; color: #59728a; }
+.session-bar p { margin: 0 auto 0 0; color: #9c3843; }
+.session-bar .report-clear { padding: 6px 14px; min-height: 0; }
