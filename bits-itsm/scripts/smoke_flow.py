@@ -75,6 +75,24 @@ candidates = technician.call("GET", f"/api/incidents/{incident_id}/eligible-tech
 assert candidates, "transfer dropdown would be empty"
 step(f"transfer can go to {len(candidates)} other qualified technician(s)")
 
+helpers = technician.call("GET", f"/api/incidents/{incident_id}/eligible-technicians?collaboration=true&skill=SECURITY")
+assert helpers, "collaborator dropdown would be empty"
+collab = technician.call("POST", f"/api/incidents/{incident_id}/collaboration-requests", {
+    "technicianId": helpers[0]["id"], "requiredSkill": "SECURITY", "reason": "Check for a rogue access point", "responsibility": "Scan the floor for rogue APs"})
+admin.call("POST", f"/api/admin/collaboration-requests/{collab['id']}/approve", {"notes": "Approved"})
+assert admin.call("GET", f"/api/incidents/{incident_id}")["collaborators"], "collaborator was not added"
+step(f"collaboration request approved: {helpers[0]['name']} joined")
+
+team = {member["technician"]["id"] for member in admin.call("GET", f"/api/incidents/{incident_id}")["collaborators"]}
+candidates = [c for c in technician.call("GET", f"/api/incidents/{incident_id}/eligible-technicians") if c["id"] not in team] or candidates
+transfer = technician.call("POST", f"/api/incidents/{incident_id}/transfer-requests", {
+    "technicianId": candidates[0]["id"], "reason": "HIGH_WORKLOAD", "handoverNotes": "AP-L2-03 suspected; logs attached."})
+admin.call("POST", f"/api/admin/transfer-requests/{transfer['id']}/approve", {"notes": "Approved"})
+moved = admin.call("GET", f"/api/incidents/{incident_id}")
+assert moved["assignedTechnician"]["id"] == candidates[0]["id"], "transfer did not change the primary technician"
+technician = Session(next(user["email"] for user in admin.call("GET", "/api/admin/users") if user["id"] == candidates[0]["id"]))
+step(f"transfer approved: now owned by {moved['assignedTechnician']['name']}")
+
 workload = technician.call("PUT", "/api/technician/availability", {"availability": "BUSY"})
 assert workload["availability"] == "BUSY"
 technician.call("PUT", "/api/technician/availability", {"availability": "AVAILABLE"})

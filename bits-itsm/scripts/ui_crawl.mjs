@@ -10,6 +10,7 @@ const BASE = (process.argv[2] || 'http://localhost:8080').replace(/\/$/, '');
 const PASSWORD = 'BitsolveDemo2026';
 const DOMAIN = '@hyderabad.bits-pilani.ac.in';
 const findings = [];
+const checked = [];
 const note = (role, where, problem) => { findings.push({ role, where, problem }); console.log(`  ✗ [${role}] ${where}: ${problem}`); };
 const pause = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -41,6 +42,7 @@ async function check(page, role, where) {
   const n = await checkSelects(page, role, where);
   await checkErrors(page, role, where);
   console.log(`  ✓ [${role}] ${where} (${n} dropdown${n === 1 ? '' : 's'})`);
+  checked.push(`${role}: ${where} (${n})`);
 }
 
 async function step(role, where, action) {
@@ -187,6 +189,7 @@ for (const [name, run] of [['student', student], ['technician', technician], ['a
   try { await run(browser); } catch (error) { note(name, 'session', error.message.split('\n')[0]); }
 }
 await browser.close();
+console.log(`::notice title=UI crawl covered ${checked.length} screens::${checked.join(' | ')}`);
 console.log(`\n${findings.length ? findings.length + ' problem(s) found' : 'No problems found.'}`);
 for (const f of findings) console.log(`::error title=UI ${f.role}: ${f.where}::${f.problem.replace(/\n/g, ' ')}`);
 process.exit(findings.length ? 1 : 0);
