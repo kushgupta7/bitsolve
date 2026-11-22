@@ -43,12 +43,16 @@ class PostgresMigrationTests {
             flyway.migrate();
             flyway.validate();
             assertEquals(0, flyway.migrate().migrationsExecuted);
-            // Later migrations add columns (V7 SLA pause, V8 affected users / SLA factor);
+            // Later migrations add columns (V7 SLA pause, V8 affected users / SLA factor, V9 phone);
             // every column that existed before must keep its value.
             var after = new java.util.LinkedHashMap<String, Object>(jdbc.queryForMap("select * from incidents where id=900"));
             after.keySet().retainAll(incident.keySet());
             assertEquals(new java.util.LinkedHashMap<String, Object>(incident), after);
-            assertEquals(account, jdbc.queryForMap("select * from app_users where id=900"));
+            // V9 adds an optional phone column (null for existing accounts); every original column keeps its value.
+            var user = new java.util.LinkedHashMap<String, Object>(jdbc.queryForMap("select * from app_users where id=900"));
+            assertNull(user.get("phone"));
+            user.keySet().retainAll(account.keySet());
+            assertEquals(new java.util.LinkedHashMap<String, Object>(account), user);
             assertEquals(1, jdbc.queryForObject("select count(*) from incident_history where incident_id=900", Integer.class));
             assertEquals("LOAD_BASED", jdbc.queryForObject("select strategy from assignment_settings where id=1", String.class));
             assertEquals("WEIGHTED", jdbc.queryForObject("select strategy from priority_settings where id=1", String.class));
